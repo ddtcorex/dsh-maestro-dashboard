@@ -4,7 +4,7 @@ import { describe, test, expect } from 'vitest'
 describe('scaffold contract', () => {
   test('cordis.patch.yml has correct id and name', () => {
     const patch = readFileSync('cordis.patch.yml', 'utf8')
-    expect(patch).toMatch(/id: maestro-dashboard/)
+    expect(patch).toMatch(/id: dsh-maestro-dashboard/)
     expect(patch).toMatch(/name: '@ddtcorex\/dsh-maestro-dashboard'/)
   })
   test('channel constant has leading /', async () => {

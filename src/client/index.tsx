@@ -14,14 +14,16 @@ function DashboardApp({ ctx }: { ctx: any }) {
       try {
         const conn = ctx?.connection ?? ctx?.get?.('connection')
         let snap: any = null
+        let res: any = null
         if (conn?.rpc?.call) {
           try {
-            snap = await conn.rpc.call(DASHBOARD_CHANNEL, { op: 'getOverview' })
+            res = await conn.rpc.call(DASHBOARD_CHANNEL, '', { op: 'getOverview' })
           } catch {
             try {
-              snap = await conn.rpc.call(DASHBOARD_CHANNEL, 'getOverview', { op: 'getOverview' })
+              res = await conn.rpc.call(DASHBOARD_CHANNEL, 'getOverview', { op: 'getOverview' })
             } catch {}
           }
+          snap = res?.ok ? res.value : res
           if (snap) {
             const healthList = (snap?.data?.health ?? snap?.health ?? []) as any[]
             const hasWarn = Array.isArray(healthList) && healthList.some((h: any) => h.status !== 'ok')
@@ -32,8 +34,9 @@ function DashboardApp({ ctx }: { ctx: any }) {
         // fallback: try legacy host global (for tests)
         const host = (window as any).__dshHost ?? (globalThis as any).host
         if (host?.call) {
-          const s2: any = await host.call(DASHBOARD_CHANNEL, { op: 'getOverview' })
-          const hasWarn = s2?.data?.health?.some((h: any) => h.status !== 'ok')
+          const s2: any = await host.call(DASHBOARD_CHANNEL, '', { op: 'getOverview' })
+          const v2 = s2?.ok ? s2.value : s2
+          const hasWarn = v2?.data?.health?.some((h: any) => h.status !== 'ok')
           setHealth(hasWarn ? 'warn' : 'ok')
         }
       } catch {}

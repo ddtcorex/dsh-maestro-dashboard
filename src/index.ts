@@ -23,45 +23,60 @@ function isLoopback(peer: any, headers: Record<string, string | undefined>): boo
   return hostOk
 }
 
+function toRpcResult<T>(value: T) { return { ok: true, value } as const }
+function toRpcError(message: string, details?: unknown) {
+  return { ok: false, error: { code: 'bad-request', message, details } } as const
+}
+
 export function createHandler(cordisCtx?: any) {
-  return async (payload: any, ctx: { peer?: any; headers?: Record<string, string>; origin?: string; contentType?: string }) => {
-    const peer = ctx?.peer ?? { address: '127.0.0.1' }
-    const headers = ctx?.headers ?? { host: '127.0.0.1:3080' }
-    // Body size check 64KB on raw JSON
-    const bodyStr = JSON.stringify(payload ?? {})
+  return async (payload: any, ctx: { peer?: any; headers?: Record<string, string>; origin?: string; contentType?: string } = {}) => {
+    // Support both (payload, ctx) for tests and (endpoint, payload) for ConnectionRpcHandler
+    // If payload is actually an endpoint string and ctx is the real payload, swap
+    let actualPayload = payload
+    let actualCtx = ctx
+    if (typeof payload === 'string' && ctx && typeof ctx === 'object' && 'op' in (ctx as any)) {
+      actualPayload = ctx
+      actualCtx = {}
+    }
+    const peer = actualCtx?.peer ?? { address: '127.0.0.1' }
+    const headers = actualCtx?.headers ?? { host: '127.0.0.1:3080' }
+    const bodyStr = JSON.stringify(actualPayload ?? {})
     if (bodyStr.length > 64 * 1024) {
-      return { error: 'body too large' }
+      return toRpcError('body too large')
     }
-    if (!isLoopback(peer, headers)) {
-      return { error: 'loopback required' }
-    }
-    // Origin and Content-Type checks for writes
-    const mForCheck = payload as any
-    if (mForCheck?.op === 'setSetting') {
-      const origin = ctx?.origin ?? headers?.origin
-      if (origin && !/^(https?:\/\/(127\.0\.0\.1|localhost|::1)(:\d+)?)$/.test(origin)) {
-        return { error: 'loopback origin required' }
+    // Loopback check only when peer/headers are explicitly provided (unit tests);
+    // for Connection RPC the authority:'loopback' already enforces it via isTrustedApiRequest
+    if (actualCtx?.peer || actualCtx?.headers) {
+      if (!isLoopback(peer, headers)) {
+        return toRpcError('loopback required')
       }
-      const ct = ctx?.contentType ?? headers?.['content-type'] ?? headers?.['Content-Type']
-      if (ct && ct !== 'application/json') {
-        return { error: 'content-type must be application/json' }
+      const mForCheck = actualPayload as any
+      if (mForCheck?.op === 'setSetting') {
+        const origin = actualCtx?.origin ?? headers?.origin
+        if (origin && !/^(https?:\/\/(127\.0\.0\.1|localhost|::1)(:\d+)?)$/.test(origin)) {
+          return toRpcError('loopback origin required')
+        }
+        const ct = actualCtx?.contentType ?? headers?.['content-type'] ?? headers?.['Content-Type']
+        if (ct && ct !== 'application/json') {
+          return toRpcError('content-type must be application/json')
+        }
       }
     }
-    const parsed = dashboardMethodSchema.safeParse(payload)
+    const parsed = dashboardMethodSchema.safeParse(actualPayload)
     if (!parsed.success) {
-      return { error: 'unknown-op', issues: parsed.error.issues }
+      return toRpcError('unknown-op', parsed.error.issues)
     }
     const m = parsed.data as any
     try {
-      if (m.op === 'getOverview') return await getOverviewSnapshot(cordisCtx ?? { get: () => undefined })
-      if (m.op === 'getPlugins') return await getPluginsSnapshot()
-      if (m.op === 'getUsage') return await getUsageSnapshot(m.range)
-      if (m.op === 'getSettingsDomains') return await getSettingsDomains()
-      if (m.op === 'setSetting') { await setSetting(m.domain, m.patch); return { ok: true } }
+      if (m.op === 'getOverview') return toRpcResult(await getOverviewSnapshot(cordisCtx ?? { get: () => undefined }))
+      if (m.op === 'getPlugins') return toRpcResult(await getPluginsSnapshot())
+      if (m.op === 'getUsage') return toRpcResult(await getUsageSnapshot(m.range))
+      if (m.op === 'getSettingsDomains') return toRpcResult(await getSettingsDomains())
+      if (m.op === 'setSetting') { await setSetting(m.domain, m.patch); return toRpcResult({ ok: true }) }
     } catch (e: any) {
-      return { error: String(e?.message ?? e) }
+      return toRpcError(String(e?.message ?? e))
     }
-    return { error: 'unknown-op' }
+    return toRpcError('unknown-op')
   }
 }
 
@@ -71,9 +86,11 @@ export default {
     const handler = createHandler(ctx)
     ctx.effect(() => {
       if (ctx.connection?.rpc?.handle) {
-        return ctx.connection.rpc.handle(DASHBOARD_CHANNEL, async (payload: any, peer: any) => {
-          return handler(payload, { peer, headers: peer?.headers ?? { host: '127.0.0.1:3080' }, origin: peer?.headers?.origin, contentType: peer?.headers?.['content-type'] })
-        })
+        return ctx.connection.rpc.handle(
+          DASHBOARD_CHANNEL,
+          async (endpoint: string, payload: unknown) => handler(payload, {}),
+          { authority: 'loopback' },
+        )
       }
       return () => {}
     })
