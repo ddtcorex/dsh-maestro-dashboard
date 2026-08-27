@@ -2,20 +2,38 @@ import * as React from 'react'
 import { MaestroTrigger } from './trigger.tsx'
 import { Overlay } from './overlay.tsx'
 
-function DashboardApp() {
+const DASHBOARD_CHANNEL = '/maestro-dashboard' as const
+
+function DashboardApp({ ctx }: { ctx: any }) {
   const [open, setOpen] = React.useState(false)
   const [health, setHealth] = React.useState<'ok' | 'warn' | 'error'>('ok')
 
   React.useEffect(() => {
-    // Poll host for health (stale-while-revalidate 30s)
     let timer: any
     const poll = async () => {
       try {
-        // @ts-ignore — host global
+        const conn = ctx?.connection ?? ctx?.get?.('connection')
+        let snap: any = null
+        if (conn?.rpc?.call) {
+          try {
+            snap = await conn.rpc.call(DASHBOARD_CHANNEL, { op: 'getOverview' })
+          } catch {
+            try {
+              snap = await conn.rpc.call(DASHBOARD_CHANNEL, 'getOverview', { op: 'getOverview' })
+            } catch {}
+          }
+          if (snap) {
+            const healthList = (snap?.data?.health ?? snap?.health ?? []) as any[]
+            const hasWarn = Array.isArray(healthList) && healthList.some((h: any) => h.status !== 'ok')
+            setHealth(hasWarn ? 'warn' : 'ok')
+            return
+          }
+        }
+        // fallback: try legacy host global (for tests)
         const host = (window as any).__dshHost ?? (globalThis as any).host
         if (host?.call) {
-          const snap: any = await host.call('/maestro-dashboard', { op: 'getOverview' })
-          const hasWarn = snap?.data?.health?.some((h: any) => h.status !== 'ok')
+          const s2: any = await host.call(DASHBOARD_CHANNEL, { op: 'getOverview' })
+          const hasWarn = s2?.data?.health?.some((h: any) => h.status !== 'ok')
           setHealth(hasWarn ? 'warn' : 'ok')
         }
       } catch {}
@@ -23,7 +41,7 @@ function DashboardApp() {
     poll()
     timer = setInterval(poll, 30000)
     return () => clearInterval(timer)
-  }, [])
+  }, [ctx])
 
   return (
     <>
@@ -34,19 +52,19 @@ function DashboardApp() {
 }
 
 export default {
-  inject: ['slots'] as const,
+  inject: ['slots', 'connection'] as const,
   apply(ctx: any) {
     ctx.effect(() => {
-      if (ctx.slots?.inject) {
-        // Primary: above Settings, fallback to sidebar
-        const dispose1 = ctx.slots.inject('sidebar:settingsArea:before', () => React.createElement(DashboardApp))
-        if (dispose1) return dispose1
-        try {
-          return ctx.slots.inject('sidebar', () => React.createElement(DashboardApp))
-        } catch {
-          return () => {}
-        }
-      }
+      const factory = () => React.createElement(DashboardApp, { ctx })
+      // Primary: above Settings, fallback to sidebar
+      try {
+        const d = ctx.slots?.inject('sidebar:settingsArea:before', factory)
+        if (d) return d
+      } catch {}
+      try {
+        const d2 = ctx.slots?.inject('sidebar', factory)
+        if (d2) return d2
+      } catch {}
       return () => {}
     })
   },

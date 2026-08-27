@@ -8,7 +8,12 @@ export function OverviewTab(props: { snapshot?: any }) {
     { id: 'govard', label: 'Govard', value: 'ok', status: 'ok' },
     { id: 'notifier', label: 'Notifier', value: 'ok', status: 'ok' },
   ]
-  const heatmap = props.snapshot?.data?.heatmap ?? Array.from({ length: 52 }, (_, i) => ({ date: `2026-01-${String(i + 1).padStart(2, '0')}`, count: Math.floor(Math.random() * 5) }))
+  // 52-week heatmap: 364 days (52*7) with real dates, matching the 53-column grid (year view)
+  const heatmap = props.snapshot?.data?.heatmap ?? Array.from({ length: 52 * 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (364 - 1 - i))
+    return { date: d.toISOString().slice(0, 10), count: Math.floor(Math.random() * 5) }
+  })
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <HeroKpi kpis={kpis} />

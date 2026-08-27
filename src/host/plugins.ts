@@ -52,13 +52,15 @@ export async function getPluginsSnapshot(opts: GetPluginsOpts = {}): Promise<Plu
       })
     } else {
       try {
-        // Resolve workspace packages via process.cwd() (portable, no homedir hardcode)
+        // Resolve workspace packages via process.cwd() — no homedir hardcode (blacklist-safe)
         const cwd = process.cwd()
         const pkgDir = join(cwd, 'packages')
-        const fallbackDir = existsSync(pkgDir) ? pkgDir : join(homedir(), 'Work', 'htdocs', 'maestro-harness', 'packages')
+        const nmDir = join(cwd, 'node_modules', '@ddtcorex')
         const sources: Record<string, string> = {}
-        const scanDir = existsSync(pkgDir) ? pkgDir : fallbackDir
-        if (existsSync(scanDir)) {
+        const scanCandidates: string[] = []
+        if (existsSync(pkgDir)) scanCandidates.push(pkgDir)
+        else if (existsSync(nmDir)) scanCandidates.push(nmDir)
+        for (const scanDir of scanCandidates) {
           for (const entry of readdirSync(scanDir)) {
             if (entry.startsWith('dsh-maestro-')) {
               try {
