@@ -7,49 +7,59 @@ const DASHBOARD_CHANNEL = '/maestro-dashboard' as const
 function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   const [open, setOpen] = React.useState(false)
   const [health, setHealth] = React.useState<'ok' | 'warn' | 'error'>('ok')
+  const [overview, setOverview] = React.useState<any>(null)
+  const [plugins, setPlugins] = React.useState<any>(null)
+  const [usage, setUsage] = React.useState<any>(null)
+  const [usageRange, setUsageRange] = React.useState<'7d' | '30d'>('7d')
+
+  const fetchAll = React.useCallback(async (range: '7d' | '30d' = usageRange) => {
+    const conn = (ctx as any)?.connection ?? (ctx as any)?.get?.('connection')
+    const doCall = async (payload: any) => {
+      if (conn?.rpc?.call) {
+        try {
+          const r: any = await conn.rpc.call(DASHBOARD_CHANNEL, '', payload)
+          return r?.ok ? r.value : r
+        } catch {
+          try {
+            const r2: any = await conn.rpc.call(DASHBOARD_CHANNEL, payload.op, payload)
+            return r2?.ok ? r2.value : r2
+          } catch {}
+        }
+      }
+      const host = (window as any).__dshHost ?? (globalThis as any).host
+      if (host?.call) {
+        const r: any = await host.call(DASHBOARD_CHANNEL, '', payload)
+        return r?.ok ? r.value : r
+      }
+      return null
+    }
+    try {
+      const [o, p, u] = await Promise.all([doCall({ op: 'getOverview' }), doCall({ op: 'getPlugins' }), doCall({ op: 'getUsage', range })])
+      if (o) {
+        setOverview(o)
+        const healthList = (o?.data?.health ?? o?.health ?? []) as any[]
+        const hasWarn = Array.isArray(healthList) && healthList.some((h: any) => h.status !== 'ok')
+        setHealth(hasWarn ? 'warn' : 'ok')
+      }
+      if (p) setPlugins(p)
+      if (u) setUsage(u)
+    } catch {}
+  }, [ctx, usageRange])
 
   React.useEffect(() => {
-    let timer: any
-    const poll = async () => {
-      try {
-        const conn = ctx?.connection ?? ctx?.get?.('connection')
-        let snap: any = null
-        let res: any = null
-        if (conn?.rpc?.call) {
-          try {
-            res = await conn.rpc.call(DASHBOARD_CHANNEL, '', { op: 'getOverview' })
-          } catch {
-            try {
-              res = await conn.rpc.call(DASHBOARD_CHANNEL, 'getOverview', { op: 'getOverview' })
-            } catch {}
-          }
-          snap = res?.ok ? res.value : res
-          if (snap) {
-            const healthList = (snap?.data?.health ?? snap?.health ?? []) as any[]
-            const hasWarn = Array.isArray(healthList) && healthList.some((h: any) => h.status !== 'ok')
-            setHealth(hasWarn ? 'warn' : 'ok')
-            return
-          }
-        }
-        // fallback: try legacy host global (for tests)
-        const host = (window as any).__dshHost ?? (globalThis as any).host
-        if (host?.call) {
-          const s2: any = await host.call(DASHBOARD_CHANNEL, '', { op: 'getOverview' })
-          const v2 = s2?.ok ? s2.value : s2
-          const hasWarn = v2?.data?.health?.some((h: any) => h.status !== 'ok')
-          setHealth(hasWarn ? 'warn' : 'ok')
-        }
-      } catch {}
-    }
-    poll()
-    timer = setInterval(poll, 30000)
+    fetchAll(usageRange)
+    const timer = setInterval(() => fetchAll(usageRange), 30000)
     return () => clearInterval(timer)
-  }, [ctx])
+  }, [fetchAll, usageRange])
+
+  React.useEffect(() => {
+    if (open) fetchAll(usageRange)
+  }, [open, fetchAll, usageRange])
 
   return (
     <>
       <MaestroTrigger health={health} wide={wide ?? true} onClick={() => setOpen(true)} />
-      {open && <Overlay onClose={() => setOpen(false)} />}
+      {open && <Overlay onClose={() => setOpen(false)} overview={overview} plugins={plugins} usage={usage} usageRange={usageRange} onUsageRangeChange={(r) => { setUsageRange(r); fetchAll(r) }} />}
     </>
   )
 }
