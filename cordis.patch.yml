@@ -1,0 +1,4 @@
+- insert:
+    - id: maestro-dashboard
+      name: '@ddtcorex/dsh-maestro-dashboard'
+      config: {}

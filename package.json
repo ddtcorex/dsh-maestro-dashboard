@@ -1,0 +1,39 @@
+{
+  "name": "@ddtcorex/dsh-maestro-dashboard",
+  "version": "0.1.0",
+  "description": "Maestro Dashboard \u2014 unified Control Center (Overview/Plugins/Usage) DSH-native",
+  "type": "module",
+  "main": "./lib/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "verify": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "dependencies": {
+    "@ddtcorex/dsh-maestro-config-lib": "workspace:^0.1.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "typescript": "^5.8.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "zod": "^3.23.0",
+    "js-yaml": "^4.1.0",
+    "@types/js-yaml": "^4.0.6"
+  }
+}
