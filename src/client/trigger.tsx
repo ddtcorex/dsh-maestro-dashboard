@@ -18,9 +18,9 @@ export function MaestroLogo(props: { size?: number }) {
   )
 }
 
-export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boolean; onClick?: () => void }) {
+export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boolean; wide?: boolean; onClick?: () => void }) {
   const health = props.health ?? 'ok'
-  const collapsed = props.collapsed ?? false
+  const collapsed = props.collapsed ?? (props.wide === false)
   return (
     <button
       onClick={props.onClick}

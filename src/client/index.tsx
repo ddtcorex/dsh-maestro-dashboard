@@ -4,7 +4,7 @@ import { Overlay } from './overlay.tsx'
 
 const DASHBOARD_CHANNEL = '/maestro-dashboard' as const
 
-function DashboardApp({ ctx }: { ctx: any }) {
+function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   const [open, setOpen] = React.useState(false)
   const [health, setHealth] = React.useState<'ok' | 'warn' | 'error'>('ok')
 
@@ -48,7 +48,7 @@ function DashboardApp({ ctx }: { ctx: any }) {
 
   return (
     <>
-      <MaestroTrigger health={health} onClick={() => setOpen(true)} />
+      <MaestroTrigger health={health} wide={wide ?? true} onClick={() => setOpen(true)} />
       {open && <Overlay onClose={() => setOpen(false)} />}
     </>
   )
@@ -57,25 +57,19 @@ function DashboardApp({ ctx }: { ctx: any }) {
 export default {
   inject: ['slots', 'connection'] as const,
   apply(ctx: any) {
-    // Trigger beside Settings (sidebar foot) — the only slot that renders above/with Settings without shadowing whole sidebar
-    ctx.effect(() => {
-      const factory = () => React.createElement(DashboardApp, { ctx })
-      try {
-        // list slot requires registration object with id
-        const d = ctx.slots?.inject('sidebar.footer.action', { id: 'maestro-dashboard-trigger', order: -1 }, factory)
-        if (d) return d
-      } catch {}
-      // fallback for older harness builds that still expose sidebar:settingsArea:before
-      try {
-        const d2 = ctx.slots?.inject('sidebar:settingsArea:before', factory)
-        if (d2) return d2
-      } catch {}
-      try {
-        const d3 = ctx.slots?.inject('sidebar', factory)
-        if (d3) return d3
-      } catch {}
-      return () => {}
-    })
+    // Correct list-slot registration: sidebar.footer.action expects register, not direct factory
+    ctx.effect(() =>
+      ctx.slots.inject('sidebar.footer.action', () =>
+        ctx.slots.register(
+          {
+            name: 'sidebar.footer.action',
+            id: 'maestro-dashboard-trigger',
+            order: -1,
+          },
+          (props: any) => React.createElement(DashboardApp, { ctx, wide: props.wide }),
+        ),
+      ),
+    )
     // Fullscreen overlay via shell.overlay (frame-wide, above columns)
     ctx.effect(() => {
       // This effect is managed inside DashboardApp's open state; we keep a no-op here to satisfy inject ordering
