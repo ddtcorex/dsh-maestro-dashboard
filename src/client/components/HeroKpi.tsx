@@ -14,7 +14,7 @@ export function HeroKpi(props: { kpis: Array<{ id: string; label: string; value:
           }}
         >
           <div style={{ fontSize: '12px', lineHeight: '16px', color: 'var(--dsw-alias-label-tertiary)' }}>{k.label}</div>
-          <div style={{ fontSize: '20px', lineHeight: '28px', fontWeight: 600, color: 'var(--dsw-alias-label-primary)', marginTop: 4 }}>{k.value}</div>
+          <div style={{ font: 'var(--dsw-font-markdown-h1)', color: 'var(--dsw-alias-label-primary)', marginTop: 4 }}>{k.value}</div>
           <div style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 8, background: k.status === 'ok' ? 'var(--dsw-alias-state-success-primary)' : k.status === 'warn' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-state-error-primary)' }} />
         </div>
       ))}

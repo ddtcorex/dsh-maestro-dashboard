@@ -2,7 +2,7 @@ import * as React from 'react'
 export function Heatmap(props: { data: Array<{ date: string; count: number }> }) {
   const max = Math.max(1, ...props.data.map((d) => d.count))
   return (
-    <div data-heatmap style={{ display: 'grid', gridTemplateColumns: 'repeat(26, 10px)', gap: 3 }}>
+    <div data-heatmap style={{ display: 'grid', gridTemplateColumns: 'repeat(53, 10px)', gap: 3 }}>
       {props.data.map((d) => (
         <div
           key={d.date}

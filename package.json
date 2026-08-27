@@ -6,8 +6,9 @@
   "main": "./lib/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "verify": "tsc --noEmit",
-    "test": "vitest run"
+    "verify": "tsc --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "vitest run",
+    "build:client": "tsc -p tsconfig.client.json --noEmit && echo \"client verify ok\""
   },
   "dsh": {
     "bundle": {

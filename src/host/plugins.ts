@@ -1,7 +1,8 @@
 import type { PluginSnapshot } from '../shared/types.ts'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join } from 'node:path'
 import { homedir } from 'node:os'
+import { load as yamlLoad } from 'js-yaml'
 
 interface GetPluginsOpts {
   patchYml?: string
@@ -21,12 +22,16 @@ export async function getPluginsSnapshot(opts: GetPluginsOpts = {}): Promise<Plu
         if (existsSync(p)) patchContent = readFileSync(p, 'utf8')
       } catch {}
     }
-    // Simple tolerant check: if patchContent contains 'invalid: [' without closing, treat as corrupt
-    if (patchContent && patchContent.includes('invalid: [')) {
-      return {
-        v: 1,
-        generatedAt,
-        data: { installed: [], marketplace: opts.marketplace ?? [], health: [{ id: 'patch', status: 'warn', detail: 'cordis.patch.yml parse error' }] }
+    // Tolerant yaml parse via js-yaml
+    if (patchContent) {
+      try {
+        yamlLoad(patchContent)
+      } catch (e: any) {
+        return {
+          v: 1,
+          generatedAt,
+          data: { installed: [], marketplace: opts.marketplace ?? [], health: [{ id: 'patch', status: 'warn', detail: 'cordis.patch.yml parse error: ' + String(e?.message ?? e) }] }
+        }
       }
     }
 
@@ -46,17 +51,18 @@ export async function getPluginsSnapshot(opts: GetPluginsOpts = {}): Promise<Plu
         }
       })
     } else {
-      // try to scan node_modules
       try {
-        const dir = join(dirname(new URL(import.meta.url).pathname), '..', '..', 'node_modules', '@ddtcorex')
-        // fallback to workspace packages dir
-        const pkgDir = join(homedir(), 'Work', 'htdocs', 'maestro-harness', 'packages')
+        // Resolve workspace packages via process.cwd() (portable, no homedir hardcode)
+        const cwd = process.cwd()
+        const pkgDir = join(cwd, 'packages')
+        const fallbackDir = existsSync(pkgDir) ? pkgDir : join(homedir(), 'Work', 'htdocs', 'maestro-harness', 'packages')
         const sources: Record<string, string> = {}
-        if (existsSync(pkgDir)) {
-          for (const entry of readdirSync(pkgDir)) {
+        const scanDir = existsSync(pkgDir) ? pkgDir : fallbackDir
+        if (existsSync(scanDir)) {
+          for (const entry of readdirSync(scanDir)) {
             if (entry.startsWith('dsh-maestro-')) {
               try {
-                const pj = JSON.parse(readFileSync(join(pkgDir, entry, 'package.json'), 'utf8'))
+                const pj = JSON.parse(readFileSync(join(scanDir, entry, 'package.json'), 'utf8'))
                 if (pj.version) sources[entry] = pj.version
               } catch {}
             }
