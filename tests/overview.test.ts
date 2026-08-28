@@ -1,7 +1,8 @@
-import { describe, test, expect } from 'vitest'
-import { getOverviewSnapshot } from '../src/host/overview.ts'
+import { describe, test, expect, beforeEach } from 'vitest'
+import { getOverviewSnapshot, clearOverviewCacheForTest } from '../src/host/overview.ts'
 
 describe('overview handler', () => {
+  beforeEach(() => clearOverviewCacheForTest())
   test('returns 4 KPIs even with empty ctx (graceful)', async () => {
     const snap = await getOverviewSnapshot({ get: () => undefined })
     expect(snap.v).toBe(1)
@@ -18,7 +19,6 @@ describe('overview handler', () => {
   test('govard absent degrades gracefully', async () => {
     const snap = await getOverviewSnapshot({ get: (n: string) => n === 'maestroNotifier' ? { ids: () => ['x'] } : undefined })
     const govard = snap.data!.kpis.find(k => k.id === 'govard')!
-    // On this machine govard binary v1.65.0 exists at /usr/local/bin/govard, so host reports installed even without Cordis plugin
     expect(['ok', 'warn']).toContain(govard.status)
     expect(govard.value).toMatch(/not installed|installed|v\d+\.\d+\.\d+/)
   })

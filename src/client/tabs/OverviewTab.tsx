@@ -23,7 +23,6 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
     { id: 'govard', label: 'Govard', value: 'ok', status: 'ok' },
     { id: 'notifier', label: 'Notifier', value: 'ok', status: 'ok' },
   ]
-  // 52-week heatmap: 364 days (52*7) with real dates, matching the 53-column grid (year view)
   const heatmap = props.snapshot?.data?.heatmap ?? Array.from({ length: 52 * 7 }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - (364 - 1 - i))
@@ -38,6 +37,8 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
   const budgetPct = budget ? Math.min(100, Math.round((budget.used / Math.max(1, budget.limit)) * 100)) : 0
   const budgetColor = budgetPct >= 100 ? 'var(--dsw-alias-state-error-primary)' : budgetPct >= 80 ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-brand-primary)'
   const tunnel = (props.snapshot?.data as any)?.tunnel as { mode?: string; id?: string; hostname?: string; hasCredentials?: boolean } | undefined
+  const reviews = props.reviewsSnapshot?.data?.reviews ?? []
+  const gitlabBaseUrl = props.reviewsSnapshot?.data?.gitlabBaseUrl ?? 'https://git.sutunam.com'
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <HeroKpi kpis={kpis} />
@@ -45,8 +46,9 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
         <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)', flex: 'none' }}>Tunnel</div>
           <span style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 10, background: tunnel.hostname ? 'var(--dsw-alias-state-success-subtle)' : 'var(--dsw-alias-state-warn-subtle)', color: tunnel.hostname ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-warn-primary)', border: '1px solid var(--dsw-alias-border-l1)', fontWeight: 600, flex: 'none' }}>{tunnel.hostname ? 'active' : tunnel.mode ?? 'configured'}</span>
-          <span style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-primary)', flex: 'none' }} title={tunnel.hostname ? `https://${tunnel.hostname} · ${tunnel.mode ?? ''} ${tunnel.id ?? ''}`.trim() : ''}>{tunnel.hostname ? 'Enabled' : '—'}</span>
-          <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', flex: 'none' }}>{tunnel.mode ?? ''}</span>
+          <span style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-primary)', flex: 'none' }} title={tunnel.hostname ? `https://${tunnel.hostname} · ${tunnel.mode ?? ''} ${tunnel.id ?? ''}`.trim() : ''}>{tunnel.hostname ? 'enabled' : '—'}</span>
+          {tunnel.hostname && <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as any }} title={`https://${tunnel.hostname}`}>{tunnel.hostname}</span>}
+          <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', flex: 'none' }}>{tunnel.mode ?? ''}{tunnel.id ? ` · ${tunnel.id.slice(0, 8)}` : ''}</span>
           {tunnel.hostname && (
             <>
               <button onClick={() => navigator.clipboard?.writeText(`https://${tunnel.hostname}`)} style={{ flex: 'none', font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', cursor: 'pointer', color: 'var(--dsw-alias-label-primary)' }}>Copy</button>
@@ -89,7 +91,7 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
           <div style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: '12px 14px', background: 'var(--dsw-alias-bg-base)' }}>
             <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>Cost</div>
             <div style={{ font: 'var(--dsw-font-s-strong-14)', color: 'var(--dsw-alias-label-primary)', marginTop: 4 }}>¥{Number(totals.cost ?? 0).toFixed(2)}</div>
-            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 2 }}>{range}</div>
+            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 2 }}>{Number(totals.requests ?? 0)} requests · {range}</div>
           </div>
           <div style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: '12px 14px', background: 'var(--dsw-alias-bg-base)' }}>
             <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>Tokens</div>
@@ -103,76 +105,60 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
           </div>
         </div>
         {budget && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-secondary)', marginBottom: 6 }}>
+          <div style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>
               <span>Budget</span>
               <span>{budget.used.toFixed(2)} / {budget.limit.toFixed(2)} ({budgetPct}%)</span>
             </div>
             <div style={{ height: 8, borderRadius: 4, background: 'var(--dsw-alias-bg-layer-2)', overflow: 'hidden' }}>
-              <div style={{ width: `${budgetPct}%`, height: '100%', background: budgetColor, borderRadius: 4, transition: 'width .2s ease' }} />
+              <div style={{ width: `${budgetPct}%`, height: '100%', background: budgetColor, borderRadius: 4 }} />
             </div>
           </div>
         )}
-        <div style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, background: 'var(--dsw-alias-bg-base)', padding: 12 }}>
+        <div style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: 12, background: 'var(--dsw-alias-bg-base)' }}>
           <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginBottom: 8 }}>Daily cost — {range}</div>
-          <Sparkline data={daily.map((d: any) => Number(d.cost ?? 0))} />
+          <Sparkline data={daily.map((d: any) => d.cost)} />
         </div>
-        {pricing.length > 0 && (
-          <div>
-            <div style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)', marginBottom: 8 }}>Pricing (used models only)</div>
-            <PricingTable pricing={pricing} />
-            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 6 }}>Filtered to models with usage — not 5900</div>
-          </div>
-        )}
+        <div>
+          <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginBottom: 6 }}>Pricing (used models only)</div>
+          <PricingTable pricing={pricing} />
+          <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 6 }}>Filtered to models with usage in selected range.</div>
+        </div>
       </div>
-      <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16, overflowX: 'auto' }}>
+      <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16 }}>
         <div style={{ font: 'var(--dsw-font-xs-strong-13)', marginBottom: 12, color: 'var(--dsw-alias-label-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>Recent reviews</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 22, height: 20, padding: '0 8px', borderRadius: 10, background: 'var(--dsw-alias-state-success-subtle)', color: 'var(--dsw-alias-state-success-primary)', border: '1px solid var(--dsw-alias-border-l1)', font: 'var(--dsw-font-xxs-12)', fontWeight: 600 }}>{props.reviewsSnapshot?.data?.reviews?.length ?? 0}</span>
-          </div>
-          <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>from dsh-maestro-review</span>
+          <span>Recent reviews</span>
+          <span style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 10, background: 'var(--dsw-alias-state-success-subtle)', color: 'var(--dsw-alias-state-success-primary)', border: '1px solid var(--dsw-alias-border-l1)', minWidth: 22, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{reviews.length}</span>
         </div>
-        {!props.reviewsSnapshot?.data?.reviews?.length ? (
+        {!reviews.length ? (
           <div style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-tertiary)' }}>No reviews yet</div>
         ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
-            {props.reviewsSnapshot.data.reviews.map((r: any) => {
-              const base = props.reviewsSnapshot?.data?.gitlabBaseUrl ?? 'https://git.sutunam.com'
-              const mrUrl = `${base.replace(/\/$/, '')}/${r.projectPath}/-/merge_requests/${r.mrIid}`
-              const isCompleted = r.status === 'completed'
-              const isFailed = r.status === 'failed'
-              const statusIcon = isCompleted ? '✅' : isFailed ? '⚠️' : 'ℹ️'
-              const statusText = isCompleted ? 'completed' : isFailed ? 'failed' : String(r.status)
-              const summaryPart = r.summary ? `\n\n${String(r.summary).slice(0, 600)}` : r.error ? `\n\n${String(r.error).slice(0, 300)}` : ''
-              const telegramText = `<b>🔎 Maestro Review</b> — ${r.projectPath} !${r.mrIid} — ${statusIcon} ${statusText}\n🔗 <a href="${mrUrl}">${mrUrl}</a>${summaryPart}`
+          <div style={{ display: 'grid', gap: 8 }}>
+            {reviews.map((r: any) => {
+              const mrUrl = r.projectPath && r.mrIid ? `${gitlabBaseUrl}/${r.projectPath}/-/merge_requests/${r.mrIid}` : ''
               return (
-                <div key={r.id} style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: 14, display: 'grid', gap: 10, background: 'var(--dsw-alias-bg-base)' }}>
-                  {/* Header: MR link + status */}
+                <div key={r.id} style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 8, padding: 12, display: 'grid', gap: 6, background: 'var(--dsw-alias-bg-base)' }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <a href={mrUrl} target="_blank" rel="noreferrer" style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-link-default)', textDecoration: 'none', wordBreak: 'break-all' }} title={mrUrl}>{mrUrl}</a>
-                    <span style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 10, background: r.status === 'completed' ? 'var(--dsw-alias-state-success-subtle)' : r.status === 'failed' ? 'var(--dsw-alias-state-error-subtle)' : r.status === 'running' ? 'var(--dsw-alias-state-warn-subtle)' : 'var(--dsw-alias-bg-layer-2)', color: r.status === 'completed' ? 'var(--dsw-alias-state-success-primary)' : r.status === 'failed' ? 'var(--dsw-alias-state-error-primary)' : r.status === 'running' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-label-secondary)', border: '1px solid var(--dsw-alias-border-l1)', fontWeight: 600 }}>{r.status}</span>
-                    <span style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 6px', borderRadius: 6, background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)' }}>{r.mode} · {r.scope} · {r.trigger}</span>
+                    <span style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)' }}>{r.projectPath} !{r.mrIid}</span>
+                    <span style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 6px', borderRadius: 10, background: r.status === 'completed' ? 'var(--dsw-alias-state-success-subtle)' : r.status === 'running' ? 'var(--dsw-alias-state-warn-subtle)' : 'var(--dsw-alias-bg-layer-2)', color: r.status === 'completed' ? 'var(--dsw-alias-state-success-primary)' : r.status === 'running' ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-label-secondary)', border: '1px solid var(--dsw-alias-border-l1)' }}>{r.status}</span>
+                    <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>{r.mode} · {r.scope} · {r.trigger}</span>
                     <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginLeft: 'auto' }}>{formatTime(r.startedAt)} · {formatDuration(r.durationMs)} · {r.headSha.slice(0, 7)}</span>
                   </div>
-                  {/* Summary / error — polished */}
-                  {r.error && r.status === 'failed' && <div style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-state-error-primary)', background: 'var(--dsw-alias-state-error-subtle)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 8, padding: '8px 10px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.error.slice(0, 800)}</div>}
-                  {r.summary && <div style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '18px', maxHeight: 84, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.summary.slice(0, 800)}</div>}
-                  {/* Full MR URL row with copy */}
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 8, padding: '6px 8px' }}>
-                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mrUrl}</span>
-                    <button onClick={() => navigator.clipboard?.writeText(mrUrl)} style={{ flex: 'none', font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', cursor: 'pointer', color: 'var(--dsw-alias-label-primary)' }}>Copy link</button>
-                    <a href={mrUrl} target="_blank" rel="noreferrer" style={{ flex: 'none', font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', color: 'var(--dsw-alias-link-default)', textDecoration: 'none' }}>Open</a>
-                  </div>
-                  {/* Telegram message preview — at least one */}
-                  <div style={{ border: '1px dashed var(--dsw-alias-border-l2)', borderRadius: 8, padding: '8px 10px', background: 'var(--dsw-alias-bg-layer-1)', display: 'grid', gap: 6 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ font: 'var(--dsw-font-xxs-12)', fontWeight: 600, color: 'var(--dsw-alias-label-primary)' }}>Telegram</span>
-                      <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>preview — sent via maestro-notifier</span>
-                      <button onClick={() => navigator.clipboard?.writeText(telegramText)} style={{ marginLeft: 'auto', font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', cursor: 'pointer' }}>Copy Telegram text</button>
+                  {r.summary && <div style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 84, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.summary.slice(0, 600)}</div>}
+                  {r.error && <div style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-state-error-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.error.slice(0, 400)}</div>}
+                  {mrUrl && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <a href={mrUrl} target="_blank" rel="noreferrer" style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-link-default)', textDecoration: 'none', wordBreak: 'break-all' }}>{mrUrl}</a>
+                      <button onClick={() => navigator.clipboard?.writeText(mrUrl)} style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', cursor: 'pointer', color: 'var(--dsw-alias-label-primary)' }}>Copy link</button>
+                      <a href={mrUrl} target="_blank" rel="noreferrer" style={{ font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--dsw-alias-border-l1)', background: 'var(--dsw-alias-bg-base)', color: 'var(--dsw-alias-link-default)', textDecoration: 'none' }}>Open</a>
                     </div>
-                    <pre style={{ margin: 0, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '16px', maxHeight: 96, overflow: 'auto' }}>{telegramText.slice(0, 900)}</pre>
-                  </div>
+                  )}
+                  {r.summary && mrUrl && (
+                    <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 6, padding: '6px 8px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      <b>🔎 Maestro Review</b> — {r.projectPath} !{r.mrIid} — {r.status === 'completed' ? '✅' : '⚠️'}<br />
+                      🔗 <a href={mrUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--dsw-alias-link-default)' }}>{mrUrl}</a><br /><br />{r.summary.slice(0, 800)}
+                    </div>
+                  )}
                 </div>
               )
             })}

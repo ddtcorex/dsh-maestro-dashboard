@@ -48,14 +48,12 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
     } catch {}
   }, [ctx, usageRange])
 
+  // Lazy queries: only fetch after user clicks Maestro button (overlay open) — avoids background load on every DSH boot
   React.useEffect(() => {
+    if (!open) return
     fetchAll(usageRange)
     const timer = setInterval(() => fetchAll(usageRange), 30000)
     return () => clearInterval(timer)
-  }, [fetchAll, usageRange])
-
-  React.useEffect(() => {
-    if (open) fetchAll(usageRange)
   }, [open, fetchAll, usageRange])
 
   return (
@@ -69,13 +67,25 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
 export default {
   inject: ['slots', 'connection'] as const,
   apply(ctx: any) {
+    // Fix footerActions horizontal layout: Cordis + Maestro were side-by-side (flex row)
+    // Force column so each action stacks vertically above Settings
+    ctx.effect(() => {
+      const style = document.createElement('style')
+      style.setAttribute('data-maestro-footer-fix', '')
+      style.textContent = `
+        [class*="_footerActions"] { flex-direction: column !important; align-items: stretch !important; gap: 2px !important; }
+        [class*="_footerActions"] [data-slot="sidebar.footer.action"] { display: flex !important; flex-direction: column !important; gap: 2px !important; width: 100% !important; }
+      `
+      document.head.appendChild(style)
+      return () => style.remove()
+    }, 'maestro footer column fix')
     ctx.effect(() =>
       ctx.slots.inject('sidebar.footer.action', () =>
         ctx.slots.register(
           {
             name: 'sidebar.footer.action',
             id: 'maestro-dashboard-trigger',
-            order: 10,
+            order: 20,
           },
           (props: any) => React.createElement(DashboardApp, { ctx, wide: props.wide }),
         ),
