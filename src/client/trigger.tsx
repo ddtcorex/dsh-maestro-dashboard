@@ -46,7 +46,7 @@ export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boole
       </span>
       {!collapsed && (
         <>
-          <span style={{ fontSize: '14px', lineHeight: '22px', fontWeight: 500, flex: 1, textAlign: 'left' }}>Maestro</span>
+          <span style={{ font: 'var(--dsw-font-xs-strong-13)', flex: 1, textAlign: 'left' }}>Maestro</span>
           <span
             data-testid="health-dot"
             style={{

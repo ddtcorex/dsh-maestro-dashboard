@@ -13,13 +13,29 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
         zIndex: 1000,
         background: 'var(--dsw-alias-bg-base)',
         overflowY: 'auto',
+        overflowX: 'hidden',
       }}
       role="dialog"
       aria-label="Maestro Dashboard"
+      data-maestro-overlay
     >
+      <style>{`
+        [data-maestro-tabs] { overflow-x:auto; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+        [data-maestro-tabs]::-webkit-scrollbar { display: none; }
+        [data-heatmap-wrap] { overflow-x:auto; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        [data-heatmap] { min-width: max-content; overflow-x:auto; }
+        @media (max-width: 390px) {
+          [data-maestro-content] { padding: 12px !important; }
+          [data-maestro-tabs] { padding: 12px 12px !important; }
+        }
+      `}</style>
       <header
+        data-maestro-header
         style={{
           height: 56,
+          minHeight: 56,
+          flexShrink: 0,
+          boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -27,7 +43,7 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
           borderBottom: '1px solid var(--dsw-alias-border-l2)',
         }}
       >
-        <div style={{ fontSize: '16px', lineHeight: '24px', fontWeight: 600, letterSpacing: '.08em', color: 'var(--dsw-alias-label-primary)' }}>
+        <div style={{ font: 'var(--dsw-font-s-strong-14)', letterSpacing: '.02em', color: 'var(--dsw-alias-label-primary)' }}>
           Maestro Dashboard
         </div>
         <button
@@ -49,7 +65,19 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
         </button>
       </header>
 
-      <div style={{ display: 'flex', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--dsw-alias-border-l2)' }}>
+      <div
+        data-maestro-tabs
+        style={{
+          display: 'flex',
+          gap: 8,
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--dsw-alias-border-l2)',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none' as any,
+        }}
+      >
         {(['Overview', 'Plugins', 'Usage'] as const).map((tab) => {
           const active = activeTab === tab
           return (
@@ -62,11 +90,12 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
                 borderRadius: 14,
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '14px',
-                lineHeight: '22px',
+                font: 'var(--dsw-font-xs-13)',
                 background: active ? 'var(--dsw-alias-button-ghost-active-fill)' : 'transparent',
                 color: active ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-label-secondary)',
                 boxShadow: active ? 'inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border)' : 'none',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
             >
               {tab}
@@ -75,7 +104,7 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
         })}
       </div>
 
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: 16, display: 'grid', gap: 16 }}>
+      <div data-maestro-content style={{ maxWidth: 1120, margin: '0 auto', padding: 16, display: 'grid', gap: 16, boxSizing: 'border-box', width: '100%' }}>
         {activeTab === 'Overview' && <OverviewTab snapshot={props.overview} />}
         {activeTab === 'Plugins' && <PluginsTab snapshot={props.plugins} />}
         {activeTab === 'Usage' &&

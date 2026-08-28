@@ -17,12 +17,12 @@ export function OverviewTab(props: { snapshot?: any }) {
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <HeroKpi kpis={kpis} />
-      <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16 }}>
-        <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: 12, color: 'var(--dsw-alias-label-primary)' }}>Activity Heatmap (52 weeks)</div>
+      <div data-heatmap-wrap style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+        <div style={{ font: 'var(--dsw-font-xs-strong-13)', marginBottom: 12, color: 'var(--dsw-alias-label-primary)' }}>Activity Heatmap (52 weeks)</div>
         <Heatmap data={heatmap} />
       </div>
       <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16 }}>
-        <div style={{ fontSize: '14px', color: 'var(--dsw-alias-label-secondary)' }}>Recent sessions — {props.snapshot?.data?.sessions?.length ?? 0} items</div>
+        <div style={{ font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)' }}>Recent sessions — {props.snapshot?.data?.sessions?.length ?? 0} items</div>
       </div>
     </div>
   )

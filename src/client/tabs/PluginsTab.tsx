@@ -19,6 +19,7 @@ export function PluginsTab(props: { snapshot?: any }) {
               color: tab === t ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-label-secondary)',
               cursor: 'pointer',
               textTransform: 'capitalize',
+              font: 'var(--dsw-font-xs-13)',
             }}
           >
             {t}
@@ -27,11 +28,11 @@ export function PluginsTab(props: { snapshot?: any }) {
       </div>
       {tab === 'installed' && (
         <div style={{ display: 'grid', gap: 8 }}>
-          {installed.length ? installed.map((p: any) => <PluginCard key={p.id} {...p} />) : <div style={{ color: 'var(--dsw-alias-label-tertiary)', fontSize: 13 }}>No plugins installed</div>}
+          {installed.length ? installed.map((p: any) => <PluginCard key={p.id} {...p} />) : <div style={{ color: 'var(--dsw-alias-label-tertiary)', font: 'var(--dsw-font-xs-13)' }}>No plugins installed</div>}
         </div>
       )}
-      {tab === 'marketplace' && <div style={{ color: 'var(--dsw-alias-label-secondary)', fontSize: 13 }}>Marketplace — curated maestro plugins (jsDelivr index, 10m cache)</div>}
-      {tab === 'updates' && <div style={{ color: 'var(--dsw-alias-label-secondary)', fontSize: 13 }}>Updates — npm dist-tags diff</div>}
+      {tab === 'marketplace' && <div style={{ color: 'var(--dsw-alias-label-secondary)', font: 'var(--dsw-font-xs-13)' }}>Marketplace — curated maestro plugins (jsDelivr index, 10m cache)</div>}
+      {tab === 'updates' && <div style={{ color: 'var(--dsw-alias-label-secondary)', font: 'var(--dsw-font-xxs-12)' }}>Updates — npm dist-tags diff</div>}
     </div>
   )
 }

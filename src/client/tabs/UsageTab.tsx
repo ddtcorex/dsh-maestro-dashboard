@@ -13,7 +13,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d'; onRangeC
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--dsw-alias-label-primary)' }}>This month — ¥{totals.cost.toFixed(2)} · {totals.tokens} tokens · {totals.requests} requests</div>
+          <div style={{ font: 'var(--dsw-font-s-strong-14)', color: 'var(--dsw-alias-label-primary)' }}>This month — ¥{totals.cost.toFixed(2)} · {totals.tokens} tokens · {totals.requests} requests</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {(['7d', '30d'] as const).map((r) => (
               <button
@@ -25,7 +25,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d'; onRangeC
                   borderRadius: 12,
                   border: 'none',
                   cursor: 'pointer',
-                  fontSize: 12,
+                  font: 'var(--dsw-font-xxs-12)',
                   background: range === r ? 'var(--dsw-alias-button-ghost-active-fill)' : 'transparent',
                   color: range === r ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-label-secondary)',
                   boxShadow: range === r ? 'inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border)' : 'none',
@@ -38,7 +38,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d'; onRangeC
         </div>
         {budget && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--dsw-alias-label-secondary)', marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-secondary)', marginBottom: 6 }}>
               <span>Budget</span>
               <span>{budget.used.toFixed(2)} / {budget.limit.toFixed(2)} ({budgetPct}%)</span>
             </div>
@@ -53,7 +53,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d'; onRangeC
         <div data-sparkline style={{ display: 'none' }} />
       </div>
       <PricingTable pricing={pricing} />
-      <div style={{ fontSize: '12px', color: 'var(--dsw-alias-label-tertiary)' }}>Pricing shows only used models (filtered, not 5900)</div>
+      <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>Pricing shows only used models (filtered, not 5900)</div>
     </div>
   )
 }
