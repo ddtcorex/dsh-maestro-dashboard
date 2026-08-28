@@ -58,6 +58,22 @@ export declare const overviewSnapshotSchema: z.ZodObject<{
             lastActive: number;
             cost: number;
         }>, "many">;
+        tunnel: z.ZodOptional<z.ZodObject<{
+            mode: z.ZodOptional<z.ZodString>;
+            id: z.ZodOptional<z.ZodString>;
+            hostname: z.ZodOptional<z.ZodString>;
+            hasCredentials: z.ZodOptional<z.ZodBoolean>;
+        }, "strip", z.ZodTypeAny, {
+            id?: string | undefined;
+            mode?: string | undefined;
+            hostname?: string | undefined;
+            hasCredentials?: boolean | undefined;
+        }, {
+            id?: string | undefined;
+            mode?: string | undefined;
+            hostname?: string | undefined;
+            hasCredentials?: boolean | undefined;
+        }>>;
     }, "strip", z.ZodTypeAny, {
         kpis: {
             status: "ok" | "warn" | "error";
@@ -80,6 +96,12 @@ export declare const overviewSnapshotSchema: z.ZodObject<{
             lastActive: number;
             cost: number;
         }[];
+        tunnel?: {
+            id?: string | undefined;
+            mode?: string | undefined;
+            hostname?: string | undefined;
+            hasCredentials?: boolean | undefined;
+        } | undefined;
     }, {
         kpis: {
             status: "ok" | "warn" | "error";
@@ -102,6 +124,12 @@ export declare const overviewSnapshotSchema: z.ZodObject<{
             lastActive: number;
             cost: number;
         }[];
+        tunnel?: {
+            id?: string | undefined;
+            mode?: string | undefined;
+            hostname?: string | undefined;
+            hasCredentials?: boolean | undefined;
+        } | undefined;
     }>>;
 }, "strip", z.ZodTypeAny, {
     v: 1;
@@ -128,6 +156,12 @@ export declare const overviewSnapshotSchema: z.ZodObject<{
             lastActive: number;
             cost: number;
         }[];
+        tunnel?: {
+            id?: string | undefined;
+            mode?: string | undefined;
+            hostname?: string | undefined;
+            hasCredentials?: boolean | undefined;
+        } | undefined;
     } | null;
 }, {
     v: 1;
@@ -154,6 +188,12 @@ export declare const overviewSnapshotSchema: z.ZodObject<{
             lastActive: number;
             cost: number;
         }[];
+        tunnel?: {
+            id?: string | undefined;
+            mode?: string | undefined;
+            hostname?: string | undefined;
+            hasCredentials?: boolean | undefined;
+        } | undefined;
     } | null;
 }>;
 export declare const pluginSnapshotSchema: z.ZodObject<{
@@ -465,33 +505,36 @@ export declare const reviewsSnapshotSchema: z.ZodObject<{
             headSha: z.ZodString;
             status: z.ZodString;
             summary: z.ZodOptional<z.ZodString>;
+            error: z.ZodOptional<z.ZodString>;
             finishedAt: z.ZodOptional<z.ZodNumber>;
             durationMs: z.ZodOptional<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             status: string;
             id: string;
+            mode: string;
             projectId: number;
             projectPath: string;
             mrIid: number;
-            mode: string;
             scope: string;
             trigger: string;
             startedAt: number;
             headSha: string;
+            error?: string | undefined;
             summary?: string | undefined;
             finishedAt?: number | undefined;
             durationMs?: number | undefined;
         }, {
             status: string;
             id: string;
+            mode: string;
             projectId: number;
             projectPath: string;
             mrIid: number;
-            mode: string;
             scope: string;
             trigger: string;
             startedAt: number;
             headSha: string;
+            error?: string | undefined;
             summary?: string | undefined;
             finishedAt?: number | undefined;
             durationMs?: number | undefined;
@@ -509,6 +552,7 @@ export declare const reviewsSnapshotSchema: z.ZodObject<{
             id: string;
             detail?: string | undefined;
         }>, "many">;
+        gitlabBaseUrl: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
         health: {
             status: "ok" | "warn" | "error";
@@ -518,18 +562,20 @@ export declare const reviewsSnapshotSchema: z.ZodObject<{
         reviews: {
             status: string;
             id: string;
+            mode: string;
             projectId: number;
             projectPath: string;
             mrIid: number;
-            mode: string;
             scope: string;
             trigger: string;
             startedAt: number;
             headSha: string;
+            error?: string | undefined;
             summary?: string | undefined;
             finishedAt?: number | undefined;
             durationMs?: number | undefined;
         }[];
+        gitlabBaseUrl?: string | undefined;
     }, {
         health: {
             status: "ok" | "warn" | "error";
@@ -539,18 +585,20 @@ export declare const reviewsSnapshotSchema: z.ZodObject<{
         reviews: {
             status: string;
             id: string;
+            mode: string;
             projectId: number;
             projectPath: string;
             mrIid: number;
-            mode: string;
             scope: string;
             trigger: string;
             startedAt: number;
             headSha: string;
+            error?: string | undefined;
             summary?: string | undefined;
             finishedAt?: number | undefined;
             durationMs?: number | undefined;
         }[];
+        gitlabBaseUrl?: string | undefined;
     }>>;
 }, "strip", z.ZodTypeAny, {
     v: 1;
@@ -564,18 +612,20 @@ export declare const reviewsSnapshotSchema: z.ZodObject<{
         reviews: {
             status: string;
             id: string;
+            mode: string;
             projectId: number;
             projectPath: string;
             mrIid: number;
-            mode: string;
             scope: string;
             trigger: string;
             startedAt: number;
             headSha: string;
+            error?: string | undefined;
             summary?: string | undefined;
             finishedAt?: number | undefined;
             durationMs?: number | undefined;
         }[];
+        gitlabBaseUrl?: string | undefined;
     } | null;
 }, {
     v: 1;
@@ -589,18 +639,20 @@ export declare const reviewsSnapshotSchema: z.ZodObject<{
         reviews: {
             status: string;
             id: string;
+            mode: string;
             projectId: number;
             projectPath: string;
             mrIid: number;
-            mode: string;
             scope: string;
             trigger: string;
             startedAt: number;
             headSha: string;
+            error?: string | undefined;
             summary?: string | undefined;
             finishedAt?: number | undefined;
             durationMs?: number | undefined;
         }[];
+        gitlabBaseUrl?: string | undefined;
     } | null;
 }>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
