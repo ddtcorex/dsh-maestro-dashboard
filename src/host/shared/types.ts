@@ -7,7 +7,8 @@ export const overviewSnapshotSchema = z.object({
     kpis: z.array(z.object({ id: z.string(), label: z.string(), value: z.string(), status: z.enum(['ok', 'warn', 'error']) })),
     health: z.array(z.object({ id: z.string(), status: z.enum(['ok', 'warn', 'error']), detail: z.string().optional() })),
     heatmap: z.array(z.object({ date: z.string(), count: z.number() })),
-    sessions: z.array(z.object({ id: z.string(), title: z.string(), lastActive: z.number(), cost: z.number() }))
+    sessions: z.array(z.object({ id: z.string(), title: z.string(), lastActive: z.number(), cost: z.number() })),
+    tunnel: z.object({ mode: z.string().optional(), id: z.string().optional(), hostname: z.string().optional(), hasCredentials: z.boolean().optional() }).optional()
   }))
 })
 
@@ -49,10 +50,12 @@ export const reviewsSnapshotSchema = z.object({
       headSha: z.string(),
       status: z.string(),
       summary: z.string().optional(),
+      error: z.string().optional(),
       finishedAt: z.number().optional(),
       durationMs: z.number().optional()
     })),
-    health: z.array(z.object({ id: z.string(), status: z.enum(['ok', 'warn', 'error']), detail: z.string().optional() }))
+    health: z.array(z.object({ id: z.string(), status: z.enum(['ok', 'warn', 'error']), detail: z.string().optional() })),
+    gitlabBaseUrl: z.string().optional()
   }))
 })
 
