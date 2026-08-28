@@ -5,6 +5,18 @@ import { homedir } from 'node:os'
 
 export async function getReviewsSnapshot(limit = 20): Promise<ReviewsSnapshot> {
   const generatedAt = Date.now()
+  // Resolve GitLab base URL for full MR link — read from shared maestro settings (same as review plugin)
+  let gitlabBaseUrl = 'https://git.sutunam.com'
+  try {
+    const settingsPaths = [join(homedir(), '.dsh', 'maestro', 'settings.json'), join(homedir(), 'maestro', 'settings.json')]
+    for (const p of settingsPaths) {
+      if (existsSync(p)) {
+        const j = JSON.parse(readFileSync(p, 'utf8'))
+        const base = j?.domains?.gitlab?.baseUrl ?? j?.gitlabBaseUrl ?? j?.gitlab?.baseUrl
+        if (typeof base === 'string' && base.startsWith('http')) { gitlabBaseUrl = base.replace(/\/$/, ''); break }
+      }
+    }
+  } catch {}
   const file = join(homedir(), 'dsh-maestro-review', 'reviews.json')
   // Also try ~/.dsh/dsh-maestro-review for legacy
   const altFile = join(homedir(), '.dsh', 'dsh-maestro-review', 'reviews.json')
@@ -17,7 +29,7 @@ export async function getReviewsSnapshot(limit = 20): Promise<ReviewsSnapshot> {
     return {
       v: 1,
       generatedAt,
-      data: { reviews: [], health: [{ id: 'reviews', status: 'ok', detail: 'no reviews yet' }] }
+      data: { reviews: [], health: [{ id: 'reviews', status: 'ok', detail: 'no reviews yet' }], gitlabBaseUrl }
     }
   }
   try {
@@ -36,19 +48,20 @@ export async function getReviewsSnapshot(limit = 20): Promise<ReviewsSnapshot> {
       headSha: String(r.headSha ?? ''),
       status: String(r.status ?? 'unknown'),
       summary: r.summary ? String(r.summary) : undefined,
+      error: r.error ? String(r.error) : undefined,
       finishedAt: r.finishedAt ? Number(r.finishedAt) : undefined,
       durationMs: r.finishedAt && r.startedAt ? Number(r.finishedAt) - Number(r.startedAt) : undefined
     }))
     return {
       v: 1,
       generatedAt,
-      data: { reviews, health: [{ id: 'reviews', status: 'ok' }] }
+      data: { reviews, health: [{ id: 'reviews', status: 'ok' }], gitlabBaseUrl }
     }
   } catch (e: any) {
     return {
       v: 1,
       generatedAt,
-      data: { reviews: [], health: [{ id: 'reviews', status: 'warn', detail: 'reviews.json parse error: ' + String(e?.message ?? e) }] }
+      data: { reviews: [], health: [{ id: 'reviews', status: 'warn', detail: 'reviews.json parse error: ' + String(e?.message ?? e) }], gitlabBaseUrl }
     }
   }
 }

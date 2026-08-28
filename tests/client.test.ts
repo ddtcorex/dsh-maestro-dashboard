@@ -7,12 +7,16 @@ describe('client files', () => {
     expect(s).toContain('var(--dsw-alias-')
     expect(s).toContain('MaestroLogo')
   })
-  test('overlay has 3 tabs and uses DSW tokens', () => {
+  test('overlay renders Overview with usage and uses DSW tokens', () => {
     const s = readFileSync('src/client/overlay.tsx', 'utf8')
-    expect(s).toContain('Overview')
-    expect(s).toContain('Plugins')
-    expect(s).toContain('Usage')
+    expect(s).toContain('OverviewTab')
+    expect(s).toContain('usage')
+    expect(s).not.toContain('Plugins')
     expect(s).toContain('var(--dsw-alias-')
+    const o = readFileSync('src/client/tabs/OverviewTab.tsx', 'utf8')
+    expect(o).toContain('Sparkline')
+    expect(o).toContain('PricingTable')
+    expect(o).toContain('Usage')
   })
   test('hero/heatmap/sparkline use SVG and tokens', () => {
     expect(readFileSync('src/client/components/HeroKpi.tsx','utf8')).toContain('var(--dsw-alias-')

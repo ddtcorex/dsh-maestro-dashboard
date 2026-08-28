@@ -75,7 +75,7 @@ export default {
           {
             name: 'sidebar.footer.action',
             id: 'maestro-dashboard-trigger',
-            order: -1,
+            order: 10,
           },
           (props: any) => React.createElement(DashboardApp, { ctx, wide: props.wide }),
         ),

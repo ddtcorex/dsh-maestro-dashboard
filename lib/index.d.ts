@@ -37,6 +37,12 @@ export declare function createHandler(cordisCtx?: any): (payload: any, ctx?: {
                 lastActive: number;
                 cost: number;
             }[];
+            tunnel?: {
+                id?: string | undefined;
+                mode?: string | undefined;
+                hostname?: string | undefined;
+                hasCredentials?: boolean | undefined;
+            } | undefined;
         } | null;
     };
 } | {
@@ -108,18 +114,20 @@ export declare function createHandler(cordisCtx?: any): (payload: any, ctx?: {
             reviews: {
                 status: string;
                 id: string;
+                mode: string;
                 projectId: number;
                 projectPath: string;
                 mrIid: number;
-                mode: string;
                 scope: string;
                 trigger: string;
                 startedAt: number;
                 headSha: string;
+                error?: string | undefined;
                 summary?: string | undefined;
                 finishedAt?: number | undefined;
                 durationMs?: number | undefined;
             }[];
+            gitlabBaseUrl?: string | undefined;
         } | null;
     };
 } | {
