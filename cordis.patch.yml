@@ -1,4 +1,7 @@
+# dsh-maestro-dashboard bundle patch — dashboard Control Center (Overview/Plugins/Usage)
+# RPC channel: /dsh-maestro-dashboard (loopback, see src/host/index.ts)
 - insert:
     - id: dsh-maestro-dashboard
       name: '@ddtcorex/dsh-maestro-dashboard'
+      channel: /dsh-maestro-dashboard
       config: {}

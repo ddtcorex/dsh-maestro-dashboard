@@ -1,7 +1,8 @@
-import type { OverviewSnapshot } from '../shared/types.ts'
-import { readFileSync, readdirSync } from 'node:fs'
+import type { OverviewSnapshot } from './shared/types.ts'
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
+import { zstdDecompressSync } from 'node:zlib'
 
 export async function getOverviewSnapshot(ctx: any): Promise<OverviewSnapshot> {
   const generatedAt = Date.now()
@@ -68,14 +69,91 @@ export async function getOverviewSnapshot(ctx: any): Promise<OverviewSnapshot> {
     { id: 'review', status: 'ok', detail: reviewCount > 0 ? `${reviewCount} reviews` : undefined },
   ]
   if (supervisorCount > 0) health.push({ id: 'supervisor', status: 'ok', detail: `${supervisorCount} reports` })
+
+  // Real heatmap + recent sessions from ~/.dsh/sessions/*/session.jsonl.zstd (incremental, tolerant, no secrets)
+  let heatmap: Array<{ date: string; count: number }> = []
+  let sessions: Array<{ id: string; title: string; lastActive: number; cost: number }> = []
+  try {
+    const sessionsDir = join(homedir(), '.dsh', 'sessions')
+    const byDate: Record<string, number> = {}
+    const now = Date.now()
+    // init 52*7 days zero
+    for (let i = 0; i < 52 * 7; i++) {
+      const d = new Date(now - (52 * 7 - 1 - i) * 86400000)
+      byDate[d.toISOString().slice(0, 10)] = 0
+    }
+    if (existsSync(sessionsDir)) {
+      const groups = readdirSync(sessionsDir, { withFileTypes: true })
+      const sessionInfos: Array<{ id: string; title: string; lastActive: number; cost: number }> = []
+      for (const g of groups) {
+        if (!g.isDirectory()) continue
+        const groupPath = join(sessionsDir, g.name)
+        let entries: string[] = []
+        try { entries = readdirSync(groupPath) } catch { continue }
+        for (const e of entries) {
+          if (!e.endsWith('.jsonl') && !e.endsWith('.jsonl.zstd')) continue
+          const fp = join(groupPath, e)
+          let mtime = 0
+          try { mtime = statSync(fp).mtimeMs } catch { mtime = now }
+          const isZstd = e.endsWith('.zstd')
+          let text = ''
+          try {
+            const buf = readFileSync(fp)
+            text = isZstd ? zstdDecompressSync(buf).toString('utf8') : buf.toString('utf8')
+          } catch { continue }
+          let count = 0
+          let cost = 0
+          let lastActive = mtime
+          for (const line of text.split('\n')) {
+            if (!line.trim()) continue
+            try {
+              const obj: any = JSON.parse(line)
+              const ts = obj?.timestamp ?? obj?.time ?? obj?.createdAt
+              if (ts) {
+                const d = new Date(ts).toISOString().slice(0, 10)
+                if (byDate[d] !== undefined) byDate[d] += 1
+                else byDate[d] = 1
+              } else {
+                // fallback: count per file mtime day
+                const d = new Date(mtime).toISOString().slice(0, 10)
+                if (byDate[d] !== undefined) byDate[d] += 1
+              }
+              count += 1
+              if (obj?.cost) cost += Number(obj.cost) || 0
+              if (obj?.usage?.total_tokens) cost += 0.001 // stub
+              if (obj?.timestamp) lastActive = Math.max(lastActive, new Date(obj.timestamp).getTime())
+            } catch {}
+          }
+          if (count === 0) {
+            const d = new Date(mtime).toISOString().slice(0, 10)
+            if (byDate[d] !== undefined) byDate[d] += 1
+          }
+          const sid = e.replace('.jsonl.zstd', '').replace('.jsonl', '').slice(0, 32) || g.name
+          const title = sid.slice(0, 24)
+          sessionInfos.push({ id: sid, title, lastActive, cost })
+        }
+      }
+      sessionInfos.sort((a, b) => b.lastActive - a.lastActive)
+      sessions = sessionInfos.slice(0, 20)
+      heatmap = Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }))
+    } else {
+      // fallback: empty heatmap with zeros
+      heatmap = Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }))
+    }
+  } catch {
+    // graceful: leave heatmap/sessions empty, client will show fallback
+    heatmap = []
+    sessions = []
+  }
+
   return {
     v: 1,
     generatedAt,
     data: {
       kpis,
       health,
-      heatmap: [],
-      sessions: [],
+      heatmap,
+      sessions,
     }
   }
 }

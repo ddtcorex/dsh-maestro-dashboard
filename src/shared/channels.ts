@@ -1,1 +1,1 @@
-export const DASHBOARD_CHANNEL = '/maestro-dashboard' as const
+export { DASHBOARD_CHANNEL } from '../host/shared/channels.ts'

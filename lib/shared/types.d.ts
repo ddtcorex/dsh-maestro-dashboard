@@ -449,9 +449,164 @@ export declare const usageSnapshotSchema: z.ZodObject<{
         } | undefined;
     } | null;
 }>;
+export declare const reviewsSnapshotSchema: z.ZodObject<{
+    v: z.ZodLiteral<1>;
+    generatedAt: z.ZodNumber;
+    data: z.ZodNullable<z.ZodObject<{
+        reviews: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            projectId: z.ZodNumber;
+            projectPath: z.ZodString;
+            mrIid: z.ZodNumber;
+            mode: z.ZodString;
+            scope: z.ZodString;
+            trigger: z.ZodString;
+            startedAt: z.ZodNumber;
+            headSha: z.ZodString;
+            status: z.ZodString;
+            summary: z.ZodOptional<z.ZodString>;
+            finishedAt: z.ZodOptional<z.ZodNumber>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
+        }, "strip", z.ZodTypeAny, {
+            status: string;
+            id: string;
+            projectId: number;
+            projectPath: string;
+            mrIid: number;
+            mode: string;
+            scope: string;
+            trigger: string;
+            startedAt: number;
+            headSha: string;
+            summary?: string | undefined;
+            finishedAt?: number | undefined;
+            durationMs?: number | undefined;
+        }, {
+            status: string;
+            id: string;
+            projectId: number;
+            projectPath: string;
+            mrIid: number;
+            mode: string;
+            scope: string;
+            trigger: string;
+            startedAt: number;
+            headSha: string;
+            summary?: string | undefined;
+            finishedAt?: number | undefined;
+            durationMs?: number | undefined;
+        }>, "many">;
+        health: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            status: z.ZodEnum<["ok", "warn", "error"]>;
+            detail: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            status: "ok" | "warn" | "error";
+            id: string;
+            detail?: string | undefined;
+        }, {
+            status: "ok" | "warn" | "error";
+            id: string;
+            detail?: string | undefined;
+        }>, "many">;
+    }, "strip", z.ZodTypeAny, {
+        health: {
+            status: "ok" | "warn" | "error";
+            id: string;
+            detail?: string | undefined;
+        }[];
+        reviews: {
+            status: string;
+            id: string;
+            projectId: number;
+            projectPath: string;
+            mrIid: number;
+            mode: string;
+            scope: string;
+            trigger: string;
+            startedAt: number;
+            headSha: string;
+            summary?: string | undefined;
+            finishedAt?: number | undefined;
+            durationMs?: number | undefined;
+        }[];
+    }, {
+        health: {
+            status: "ok" | "warn" | "error";
+            id: string;
+            detail?: string | undefined;
+        }[];
+        reviews: {
+            status: string;
+            id: string;
+            projectId: number;
+            projectPath: string;
+            mrIid: number;
+            mode: string;
+            scope: string;
+            trigger: string;
+            startedAt: number;
+            headSha: string;
+            summary?: string | undefined;
+            finishedAt?: number | undefined;
+            durationMs?: number | undefined;
+        }[];
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    v: 1;
+    generatedAt: number;
+    data: {
+        health: {
+            status: "ok" | "warn" | "error";
+            id: string;
+            detail?: string | undefined;
+        }[];
+        reviews: {
+            status: string;
+            id: string;
+            projectId: number;
+            projectPath: string;
+            mrIid: number;
+            mode: string;
+            scope: string;
+            trigger: string;
+            startedAt: number;
+            headSha: string;
+            summary?: string | undefined;
+            finishedAt?: number | undefined;
+            durationMs?: number | undefined;
+        }[];
+    } | null;
+}, {
+    v: 1;
+    generatedAt: number;
+    data: {
+        health: {
+            status: "ok" | "warn" | "error";
+            id: string;
+            detail?: string | undefined;
+        }[];
+        reviews: {
+            status: string;
+            id: string;
+            projectId: number;
+            projectPath: string;
+            mrIid: number;
+            mode: string;
+            scope: string;
+            trigger: string;
+            startedAt: number;
+            headSha: string;
+            summary?: string | undefined;
+            finishedAt?: number | undefined;
+            durationMs?: number | undefined;
+        }[];
+    } | null;
+}>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
 export type PluginSnapshot = z.infer<typeof pluginSnapshotSchema>;
 export type UsageSnapshot = z.infer<typeof usageSnapshotSchema>;
+export type ReviewsSnapshot = z.infer<typeof reviewsSnapshotSchema>;
 export declare const dashboardMethodSchema: z.ZodDiscriminatedUnion<"op", [z.ZodObject<{
     op: z.ZodLiteral<"getOverview">;
 }, "strip", z.ZodTypeAny, {
@@ -473,6 +628,15 @@ export declare const dashboardMethodSchema: z.ZodDiscriminatedUnion<"op", [z.Zod
 }, {
     op: "getUsage";
     range: "7d" | "30d";
+}>, z.ZodObject<{
+    op: z.ZodLiteral<"getReviews">;
+    limit: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    op: "getReviews";
+    limit?: number | undefined;
+}, {
+    op: "getReviews";
+    limit?: number | undefined;
 }>, z.ZodObject<{
     op: z.ZodLiteral<"getSettingsDomains">;
 }, "strip", z.ZodTypeAny, {

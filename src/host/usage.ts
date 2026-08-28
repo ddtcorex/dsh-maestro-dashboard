@@ -1,4 +1,4 @@
-import type { UsageSnapshot } from '../shared/types.ts'
+import type { UsageSnapshot } from './shared/types.ts'
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'

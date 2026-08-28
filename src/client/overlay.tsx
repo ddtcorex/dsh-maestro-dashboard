@@ -3,7 +3,7 @@ import { OverviewTab } from './tabs/OverviewTab.tsx'
 import { PluginsTab } from './tabs/PluginsTab.tsx'
 import { UsageTab } from './tabs/UsageTab.tsx'
 
-export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; plugins?: any; usage?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void }) {
+export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; plugins?: any; usage?: any; reviews?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void }) {
   const [activeTab, setActiveTab] = React.useState<'Overview' | 'Plugins' | 'Usage'>('Overview')
   return (
     <div
@@ -105,7 +105,7 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
       </div>
 
       <div data-maestro-content style={{ maxWidth: 1120, margin: '0 auto', padding: 16, display: 'grid', gap: 16, boxSizing: 'border-box', width: '100%' }}>
-        {activeTab === 'Overview' && <OverviewTab snapshot={props.overview} />}
+        {activeTab === 'Overview' && <OverviewTab snapshot={props.overview} reviewsSnapshot={props.reviews} />}
         {activeTab === 'Plugins' && <PluginsTab snapshot={props.plugins} />}
         {activeTab === 'Usage' &&
           (props.usageRange !== undefined && props.onUsageRangeChange !== undefined ? (

@@ -9,7 +9,7 @@ describe('scaffold contract', () => {
   })
   test('channel constant has leading /', async () => {
     const { DASHBOARD_CHANNEL } = await import('../src/shared/channels.ts')
-    expect(DASHBOARD_CHANNEL).toBe('/maestro-dashboard')
+    expect(DASHBOARD_CHANNEL).toBe('/dsh-maestro-dashboard')
     expect(/^\/[A-Za-z0-9._~-]+$/.test(DASHBOARD_CHANNEL)).toBe(true)
   })
   test('lib/index.js exists after build', () => {
