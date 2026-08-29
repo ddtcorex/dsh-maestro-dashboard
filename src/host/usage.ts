@@ -167,7 +167,7 @@ export async function getUsageSnapshot(
           dailyMap.set(day, cur)
         } catch (e: any) { warnings.push(`builtin session skipped: ${String(e?.message ?? e)}`) }
       }
-      if (totalRequests === 0) return null
+      if (totalRequests === 0 || totalTokens === 0) return null
       return { totalCost, totalTokens, totalRequests, totalInput, totalOutput, totalCacheRead, totalCacheWrite, usedModels, dailyMap }
     } catch { return null }
   }

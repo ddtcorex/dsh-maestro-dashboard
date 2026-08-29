@@ -1,1 +1,0 @@
-{"version":3,"file":"PluginCard.d.ts","sourceRoot":"","sources":["../../../../src/client/components/PluginCard.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,KAAK,MAAM,OAAO,CAAA;AAC9B,wBAAgB,UAAU,CAAC,KAAK,EAAE;IAAE,EAAE,EAAE,MAAM,CAAC;IAAC,IAAI,EAAE,MAAM,CAAC;IAAC,OAAO,EAAE,MAAM,CAAC;IAAC,MAAM,EAAE,MAAM,CAAC;IAAC,eAAe,CAAC,EAAE,OAAO,CAAA;CAAE,qBAYzH"}

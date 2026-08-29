@@ -3,7 +3,6 @@ export declare function Overlay(props: {
     onClose?: () => void;
     children?: React.ReactNode;
     overview?: any;
-    plugins?: any;
     usage?: any;
     reviews?: any;
     usageRange?: '7d' | '30d';

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { OverviewTab } from './tabs/OverviewTab.tsx'
 
-export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; plugins?: any; usage?: any; reviews?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void }) {
+export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; usage?: any; reviews?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void }) {
   return (
     <div
       style={{
