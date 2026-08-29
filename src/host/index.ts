@@ -65,7 +65,7 @@ export function createHandler(cordisCtx?: any) {
     try {
       if (m.op === 'getOverview') return toRpcResult(await getOverviewSnapshot(cordisCtx ?? { get: () => undefined }))
       if (m.op === 'getPlugins') return toRpcResult(await getPluginsSnapshot())
-      if (m.op === 'getUsage') return toRpcResult(await getUsageSnapshot(m.range))
+      if (m.op === 'getUsage') return toRpcResult(await getUsageSnapshot(m.range, {}, cordisCtx))
       if (m.op === 'getReviews') return toRpcResult(await getReviewsSnapshot((m as any).limit))
       if (m.op === 'getSettingsDomains') return toRpcResult(await getSettingsDomains())
       if (m.op === 'setSetting') { await setSetting(m.domain, m.patch); return toRpcResult({ ok: true }) }

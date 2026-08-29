@@ -8,6 +8,6 @@ interface GetUsageOpts {
         output: number;
     }>;
 }
-export declare function getUsageSnapshot(range?: '7d' | '30d', opts?: GetUsageOpts): Promise<UsageSnapshot>;
+export declare function getUsageSnapshot(range?: '7d' | '30d', opts?: GetUsageOpts, cordisCtx?: any): Promise<UsageSnapshot>;
 export {};
 //# sourceMappingURL=usage.d.ts.map

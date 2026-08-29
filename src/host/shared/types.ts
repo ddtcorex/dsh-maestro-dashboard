@@ -26,8 +26,24 @@ export const usageSnapshotSchema = z.object({
   v: z.literal(1),
   generatedAt: z.number(),
   data: z.nullable(z.object({
-    totals: z.object({ cost: z.number(), tokens: z.number(), requests: z.number() }),
-    daily: z.array(z.object({ date: z.string(), cost: z.number(), tokens: z.number() })),
+    totals: z.object({
+      cost: z.number(),
+      tokens: z.number(),
+      requests: z.number(),
+      inputTokens: z.number().optional(),
+      outputTokens: z.number().optional(),
+      cacheReadTokens: z.number().optional(),
+      cacheWriteTokens: z.number().optional(),
+    }),
+    daily: z.array(z.object({
+      date: z.string(),
+      cost: z.number(),
+      tokens: z.number(),
+      inputTokens: z.number().optional(),
+      outputTokens: z.number().optional(),
+      cacheReadTokens: z.number().optional(),
+      cacheWriteTokens: z.number().optional(),
+    })),
     pricing: z.array(z.object({ model: z.string(), input: z.number(), output: z.number() })),
     warnings: z.array(z.string()).optional(),
     budget: z.object({ limit: z.number(), used: z.number() }).optional()
