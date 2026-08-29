@@ -29,8 +29,8 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
     return { date: d.toISOString().slice(0, 10), count: Math.floor(Math.random() * 5) }
   })
   const usageData = props.usage?.data
-  const totals = usageData?.totals ?? { cost: 0, tokens: 0, requests: 0 }
-  const daily: Array<{ date: string; cost: number; tokens: number }> = usageData?.daily ?? []
+  const totals = usageData?.totals ?? { cost: 0, tokens: 0, requests: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }
+  const daily: Array<{ date: string; cost: number; tokens: number; inputTokens?: number; outputTokens?: number; cacheReadTokens?: number; cacheWriteTokens?: number }> = usageData?.daily ?? []
   const pricing: Array<{ model: string; input: number; output: number }> = usageData?.pricing ?? []
   const budget = usageData?.budget as { limit: number; used: number } | undefined
   const range = props.usageRange ?? '7d'
@@ -96,6 +96,9 @@ export function OverviewTab(props: { snapshot?: any; reviewsSnapshot?: any; usag
           <div style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: '12px 14px', background: 'var(--dsw-alias-bg-base)' }}>
             <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>Tokens</div>
             <div style={{ font: 'var(--dsw-font-s-strong-14)', color: 'var(--dsw-alias-label-primary)', marginTop: 4 }}>{Number(totals.tokens ?? 0).toLocaleString()}</div>
+            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-secondary)', marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <span>In {Number(totals.inputTokens ?? 0).toLocaleString()}</span><span>·</span><span>Out {Number(totals.outputTokens ?? 0).toLocaleString()}</span>{totals.cacheReadTokens ? <><span>·</span><span>Cache {Number(totals.cacheReadTokens).toLocaleString()}</span></> : null}
+            </div>
             <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 2 }}>{Number(totals.requests ?? 0)} requests</div>
           </div>
           <div style={{ border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: '12px 14px', background: 'var(--dsw-alias-bg-base)' }}>

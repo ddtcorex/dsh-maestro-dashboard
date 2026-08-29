@@ -82,11 +82,19 @@ export declare function createHandler(cordisCtx?: any): (payload: any, ctx?: {
                 cost: number;
                 tokens: number;
                 requests: number;
+                inputTokens?: number | undefined;
+                outputTokens?: number | undefined;
+                cacheReadTokens?: number | undefined;
+                cacheWriteTokens?: number | undefined;
             };
             daily: {
                 date: string;
                 cost: number;
                 tokens: number;
+                inputTokens?: number | undefined;
+                outputTokens?: number | undefined;
+                cacheReadTokens?: number | undefined;
+                cacheWriteTokens?: number | undefined;
             }[];
             pricing: {
                 model: string;

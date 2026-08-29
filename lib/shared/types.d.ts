@@ -349,27 +349,51 @@ export declare const usageSnapshotSchema: z.ZodObject<{
             cost: z.ZodNumber;
             tokens: z.ZodNumber;
             requests: z.ZodNumber;
+            inputTokens: z.ZodOptional<z.ZodNumber>;
+            outputTokens: z.ZodOptional<z.ZodNumber>;
+            cacheReadTokens: z.ZodOptional<z.ZodNumber>;
+            cacheWriteTokens: z.ZodOptional<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             cost: number;
             tokens: number;
             requests: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }, {
             cost: number;
             tokens: number;
             requests: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }>;
         daily: z.ZodArray<z.ZodObject<{
             date: z.ZodString;
             cost: z.ZodNumber;
             tokens: z.ZodNumber;
+            inputTokens: z.ZodOptional<z.ZodNumber>;
+            outputTokens: z.ZodOptional<z.ZodNumber>;
+            cacheReadTokens: z.ZodOptional<z.ZodNumber>;
+            cacheWriteTokens: z.ZodOptional<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             date: string;
             cost: number;
             tokens: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }, {
             date: string;
             cost: number;
             tokens: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }>, "many">;
         pricing: z.ZodArray<z.ZodObject<{
             model: z.ZodString;
@@ -400,11 +424,19 @@ export declare const usageSnapshotSchema: z.ZodObject<{
             cost: number;
             tokens: number;
             requests: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         };
         daily: {
             date: string;
             cost: number;
             tokens: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }[];
         pricing: {
             model: string;
@@ -421,11 +453,19 @@ export declare const usageSnapshotSchema: z.ZodObject<{
             cost: number;
             tokens: number;
             requests: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         };
         daily: {
             date: string;
             cost: number;
             tokens: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }[];
         pricing: {
             model: string;
@@ -446,11 +486,19 @@ export declare const usageSnapshotSchema: z.ZodObject<{
             cost: number;
             tokens: number;
             requests: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         };
         daily: {
             date: string;
             cost: number;
             tokens: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }[];
         pricing: {
             model: string;
@@ -471,11 +519,19 @@ export declare const usageSnapshotSchema: z.ZodObject<{
             cost: number;
             tokens: number;
             requests: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         };
         daily: {
             date: string;
             cost: number;
             tokens: number;
+            inputTokens?: number | undefined;
+            outputTokens?: number | undefined;
+            cacheReadTokens?: number | undefined;
+            cacheWriteTokens?: number | undefined;
         }[];
         pricing: {
             model: string;

@@ -2,18 +2,19 @@ import * as React from 'react'
 import { Sparkline } from '../components/Sparkline.tsx'
 import { PricingTable } from '../components/PricingTable.tsx'
 export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d'; onRangeChange?: (r: '7d' | '30d') => void }) {
-  const totals = props.snapshot?.data?.totals ?? { cost: 0, tokens: 0, requests: 0 }
+  const totals = props.snapshot?.data?.totals ?? { cost: 0, tokens: 0, requests: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }
   const daily = props.snapshot?.data?.daily ?? []
   const pricing = props.snapshot?.data?.pricing ?? []
   const budget = props.snapshot?.data?.budget as { limit: number; used: number } | undefined
   const range = props.range ?? '7d'
   const budgetPct = budget ? Math.min(100, Math.round((budget.used / Math.max(1, budget.limit)) * 100)) : 0
   const budgetColor = budgetPct >= 100 ? 'var(--dsw-alias-state-error-primary)' : budgetPct >= 80 ? 'var(--dsw-alias-state-warn-primary)' : 'var(--dsw-alias-brand-primary)'
+  const fmt = (n: number) => new Intl.NumberFormat().format(n)
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-1)', padding: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <div style={{ font: 'var(--dsw-font-s-strong-14)', color: 'var(--dsw-alias-label-primary)' }}>This month — ¥{totals.cost.toFixed(2)} · {totals.tokens} tokens · {totals.requests} requests</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ font: 'var(--dsw-font-s-strong-14)', color: 'var(--dsw-alias-label-primary)' }}>This month — ¥{totals.cost.toFixed(2)} · {fmt(totals.tokens)} tokens · {totals.requests} requests</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {(['7d', '30d'] as const).map((r) => (
               <button
@@ -35,6 +36,15 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d'; onRangeC
               </button>
             ))}
           </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-secondary)', alignItems: 'center' }}>
+          <span style={{ color: 'var(--dsw-alias-label-primary)', fontWeight: 600 }}>Input {fmt(totals.inputTokens ?? 0)}</span>
+          <span>·</span>
+          <span>Cache read {fmt(totals.cacheReadTokens ?? 0)}</span>
+          {totals.cacheWriteTokens ? <><span>·</span><span>Cache write {fmt(totals.cacheWriteTokens)}</span></> : null}
+          <span>·</span>
+          <span>Output {fmt(totals.outputTokens ?? 0)}</span>
+          <span style={{ color: 'var(--dsw-alias-label-tertiary)' }}>· Total {fmt(totals.tokens)}</span>
         </div>
         {budget && (
           <div style={{ marginTop: 12 }}>

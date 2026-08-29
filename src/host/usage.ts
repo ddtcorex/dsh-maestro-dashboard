@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { zstdDecompressSync } from 'node:zlib'
 
-const cache = new Map<string, { mtime: number; stats: { cost: number; tokens: number; model?: string } }>()
+const cache = new Map<string, { mtime: number; stats: { cost: number; tokens: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model?: string } }>()
 let lastPricingFetch = 0
 let cachedPricing: Array<{ model: string; input: number; output: number }> = []
 const PRICING_TTL = 6 * 3600 * 1000
@@ -26,26 +26,29 @@ function decompressIfNeeded(buf: Buffer, isZstd: boolean): string {
   }
 }
 
-function parseSessionContent(text: string): { cost: number; tokens: number; model?: string } {
-  let cost = 0
-  let tokens = 0
+function parseSessionContent(text: string): { cost: number; tokens: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model?: string } {
+  let cost = 0; let tokens = 0
+  let inputTokens = 0; let outputTokens = 0; let cacheReadTokens = 0; let cacheWriteTokens = 0
   let model: string | undefined
   for (const line of text.split('\n')) {
     if (!line.trim()) continue
     try {
       const obj: any = JSON.parse(line)
-      // DSH built-in Turn Usage: assistant/message + assistant/chunk carry usage
       const u = obj?.usage ?? obj?.data?.usage ?? obj?.data?.chunk?.usage ?? obj?.data?.message?.usage
       if (u) {
-        const inTok = Number(u.inputTokens ?? u.input_tokens ?? u.promptTokens ?? 0)
-        const outTok = Number(u.outputTokens ?? u.output_tokens ?? u.completionTokens ?? 0)
-        const read = Number(u.cacheReadTokens ?? u.cached_tokens ?? 0)
-        const write = Number(u.cacheWriteTokens ?? 0)
-        const tot = Number(u.totalTokens ?? u.total_tokens ?? (inTok + outTok + read + write))
+        const inTok = Number(u.inputTokens ?? u.input_tokens ?? u.promptTokens ?? u.input ?? 0)
+        const outTok = Number(u.outputTokens ?? u.output_tokens ?? u.completionTokens ?? u.output ?? 0)
+        const read = Number(u.cacheReadTokens ?? u.cached_tokens ?? u.cache_read ?? 0)
+        const write = Number(u.cacheWriteTokens ?? u.cache_write ?? 0)
+        const tot = Number(u.totalTokens ?? u.total_tokens ?? u.total ?? (inTok + outTok + read + write))
+        if (inTok) inputTokens += inTok
+        if (outTok) outputTokens += outTok
+        if (read) cacheReadTokens += read
+        if (write) cacheWriteTokens += write
         if (tot) tokens += tot
         else if (inTok || outTok) tokens += inTok + outTok + read + write
+        else if (u.total_tokens) tokens += Number(u.total_tokens)
       }
-      // legacy billing patterns
       if (obj?.cost) cost += Number(obj.cost) || 0
       if (obj?.tokens) tokens += Number(obj.tokens) || 0
       if (obj?.usage?.total_tokens) tokens += Number(obj.usage.total_tokens) || 0
@@ -53,18 +56,18 @@ function parseSessionContent(text: string): { cost: number; tokens: number; mode
       if (obj?.payload?.model) model = obj.payload.model
       if (obj?.data?.model) model = obj.data.model
       if (obj?.data?.message?.source?.model) model = obj.data.message.source.model
-      if (obj?.data?.chunk?.usage) {
-        // already counted via u above, avoid double count for cost path
-      }
     } catch {}
   }
-  // stub if no data yet but file valid — keeps tests green, real sessions will have usage
   if (cost === 0 && tokens === 0) {
-    cost = 0.01
-    tokens = 100
+    cost = 0.01; tokens = 100
+    // split stub: 60 in, 30 out, 10 read
+    inputTokens = 60; outputTokens = 30; cacheReadTokens = 10
     model = model ?? 'deepseek-chat'
+  } else if (inputTokens === 0 && outputTokens === 0 && tokens > 0) {
+    // legacy file with only total tokens: approximate 70% input, 30% output
+    inputTokens = Math.round(tokens * 0.7); outputTokens = tokens - inputTokens
   }
-  return { cost, tokens, model }
+  return { cost, tokens, inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, model }
 }
 
 async function fetchPricingWithCache(): Promise<Array<{ model: string; input: number; output: number }>> {
@@ -110,67 +113,63 @@ export async function getUsageSnapshot(
   const warnings: string[] = []
   // Framework-native: try live sessionProjections/tokenUsage first (Turn Usage built-in)
   // Falls back to file scan when registry not composed (headless) or throws.
-  const tryBuiltin = async (): Promise<{ totalCost: number; totalTokens: number; totalRequests: number; usedModels: Set<string>; dailyMap: Map<string, { cost: number; tokens: number }> } | null> => {
+  const tryBuiltin = async (): Promise<{
+    totalCost: number; totalTokens: number; totalRequests: number;
+    totalInput: number; totalOutput: number; totalCacheRead: number; totalCacheWrite: number;
+    usedModels: Set<string>; dailyMap: Map<string, { cost: number; tokens: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number }>
+  } | null> => {
     try {
       const sessionsSvc = cordisCtx?.get?.('sessions') ?? cordisCtx?.sessions
       const projSvc = cordisCtx?.get?.('sessionProjections') ?? cordisCtx?.sessionProjections
       if (!sessionsSvc || !projSvc) return null
       const list: any[] = typeof sessionsSvc.list === 'function' ? sessionsSvc.list() : []
       if (!Array.isArray(list) || list.length === 0) return null
-      // Need pricing to price tokens -> fetch first
       const pricing = opts.pricing ?? await fetchPricingWithCache()
       const priceByModel = new Map(pricing.map(p => [p.model, p]))
       const fallbackPrice = priceByModel.get('deepseek-chat') ?? pricing[0] ?? { input: 0.001, output: 0.002 }
-      let totalCost = 0
-      let totalTokens = 0
-      let totalRequests = 0
+      let totalCost = 0; let totalTokens = 0; let totalRequests = 0
+      let totalInput = 0; let totalOutput = 0; let totalCacheRead = 0; let totalCacheWrite = 0
       const usedModels = new Set<string>()
-      const dailyMap = new Map<string, { cost: number; tokens: number }>()
+      const dailyMap = new Map<string, { cost: number; tokens: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number }>()
       for (const session of list) {
         try {
           const snap: any = projSvc.snapshot?.(session) ?? projSvc.snapshot?.(session, ['tokenUsage', 'sessionStats'])
           const values: any = snap?.values ?? {}
           const tu: any = values.tokenUsage
           const ss: any = values.sessionStats
-          // tokenUsage is whole-log cumulative provider usage for this session
           const uncached = Number(tu?.uncachedInputTokens ?? 0)
           const out = Number(tu?.outputTokens ?? 0)
           const read = Number(tu?.cacheReadTokens ?? 0)
           const write = Number(tu?.cacheWriteTokens ?? 0)
           const sessionTokens = uncached + out + read + write
-          // model from request context or session header
           let model: string | undefined
           try { model = session.requestContext?.()?.model ?? session.requestHeader?.()?.config?.model } catch {}
-          if (!model) {
-            try { model = (session as any).requestContext?.model } catch {}
-          }
+          if (!model) { try { model = (session as any).requestContext?.model } catch {} }
           if (!model) model = 'deepseek-chat'
           usedModels.add(model)
           const price = priceByModel.get(model) ?? fallbackPrice
-          // cacheRead is typically discounted, but models.dev only has input/output — price read/write as input
           const sessionCost = (uncached + read + write) * (price.input / 1_000) + out * (price.output / 1_000)
-          // Fallback when tokenUsage not yet populated (0) -> try sessionStats decodeTokens as hint
           const effectiveTokens = sessionTokens > 0 ? sessionTokens : (ss?.decodeTokens ?? 0)
           const effectiveCost = sessionTokens > 0 ? sessionCost : effectiveTokens * 0.000002
-          totalTokens += effectiveTokens
-          totalCost += effectiveCost
+          // breakdown effective: when tokenUsage populated use real buckets, else fallback all as output
+          const effInput = sessionTokens > 0 ? uncached : 0
+          const effOut = sessionTokens > 0 ? out : effectiveTokens
+          const effRead = sessionTokens > 0 ? read : 0
+          const effWrite = sessionTokens > 0 ? write : 0
+          totalTokens += effectiveTokens; totalCost += effectiveCost
+          totalInput += effInput; totalOutput += effOut; totalCacheRead += effRead; totalCacheWrite += effWrite
           totalRequests += Number(ss?.steps ?? ss?.turns ?? 1) || 1
-          // daily bucket by session createdAt
           const createdAt: number | undefined = (session.header as any)?.createdAt ?? (session as any).createdAt
           const day = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
-          const cur = dailyMap.get(day) ?? { cost: 0, tokens: 0 }
-          cur.cost += effectiveCost
-          cur.tokens += effectiveTokens
+          const cur = dailyMap.get(day) ?? { cost: 0, tokens: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }
+          cur.cost += effectiveCost; cur.tokens += effectiveTokens
+          cur.inputTokens += effInput; cur.outputTokens += effOut; cur.cacheReadTokens += effRead; cur.cacheWriteTokens += effWrite
           dailyMap.set(day, cur)
-        } catch (e: any) {
-          warnings.push(`builtin session skipped: ${String(e?.message ?? e)}`)
-        }
+        } catch (e: any) { warnings.push(`builtin session skipped: ${String(e?.message ?? e)}`) }
       }
       if (totalRequests === 0) return null
-      return { totalCost, totalTokens, totalRequests, usedModels, dailyMap }
-    } catch {
-      return null
-    }
+      return { totalCost, totalTokens, totalRequests, totalInput, totalOutput, totalCacheRead, totalCacheWrite, usedModels, dailyMap }
+    } catch { return null }
   }
 
   const builtin = await tryBuiltin()
@@ -181,13 +180,29 @@ export async function getUsageSnapshot(
     const daily = Array.from({ length: days }, (_, i) => {
       const date = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
       const v = builtin.dailyMap.get(date)
-      return { date, cost: v?.cost ?? 0, tokens: v?.tokens ?? 0 }
+      return {
+        date,
+        cost: v?.cost ?? 0,
+        tokens: v?.tokens ?? 0,
+        inputTokens: v?.inputTokens ?? 0,
+        outputTokens: v?.outputTokens ?? 0,
+        cacheReadTokens: v?.cacheReadTokens ?? 0,
+        cacheWriteTokens: v?.cacheWriteTokens ?? 0,
+      }
     })
     return {
       v: 1,
       generatedAt,
       data: {
-        totals: { cost: builtin.totalCost, tokens: builtin.totalTokens, requests: builtin.totalRequests },
+        totals: {
+          cost: builtin.totalCost,
+          tokens: builtin.totalTokens,
+          requests: builtin.totalRequests,
+          inputTokens: builtin.totalInput,
+          outputTokens: builtin.totalOutput,
+          cacheReadTokens: builtin.totalCacheRead,
+          cacheWriteTokens: builtin.totalCacheWrite,
+        },
         daily,
         pricing: filteredPricing,
         warnings: warnings.length ? warnings : undefined,
@@ -200,6 +215,7 @@ export async function getUsageSnapshot(
     let totalCost = 0
     let totalTokens = 0
     let totalRequests = 0
+    let totalInput = 0; let totalOutput = 0; let totalCacheRead = 0; let totalCacheWrite = 0
     const usedModels = new Set<string>()
 
     if (existsSync(sessionsDir)) {
@@ -263,6 +279,10 @@ export async function getUsageSnapshot(
               if (cached && cached.mtime === mtime) {
                 totalCost += cached.stats.cost
                 totalTokens += cached.stats.tokens
+                totalInput += (cached.stats as any).inputTokens ?? 0
+                totalOutput += (cached.stats as any).outputTokens ?? 0
+                totalCacheRead += (cached.stats as any).cacheReadTokens ?? 0
+                totalCacheWrite += (cached.stats as any).cacheWriteTokens ?? 0
                 if (cached.stats.model) usedModels.add(cached.stats.model)
                 else usedModels.add('deepseek-chat')
                 totalRequests += 1
@@ -286,6 +306,10 @@ export async function getUsageSnapshot(
               cache.set(cacheKey, { mtime, stats })
               totalCost += stats.cost
               totalTokens += stats.tokens
+              totalInput += stats.inputTokens ?? 0
+              totalOutput += stats.outputTokens ?? 0
+              totalCacheRead += stats.cacheReadTokens ?? 0
+              totalCacheWrite += stats.cacheWriteTokens ?? 0
               if (stats.model) usedModels.add(stats.model)
               else usedModels.add('deepseek-chat')
               totalRequests += 1
@@ -312,13 +336,17 @@ export async function getUsageSnapshot(
       date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),
       cost: days ? totalCost / days : 0,
       tokens: days ? Math.round(totalTokens / days) : 0,
+      inputTokens: days ? Math.round(totalInput / days) : 0,
+      outputTokens: days ? Math.round(totalOutput / days) : 0,
+      cacheReadTokens: days ? Math.round(totalCacheRead / days) : 0,
+      cacheWriteTokens: days ? Math.round(totalCacheWrite / days) : 0,
     }))
 
     return {
       v: 1,
       generatedAt,
       data: {
-        totals: { cost: totalCost, tokens: totalTokens, requests: totalRequests },
+        totals: { cost: totalCost, tokens: totalTokens, requests: totalRequests, inputTokens: totalInput, outputTokens: totalOutput, cacheReadTokens: totalCacheRead, cacheWriteTokens: totalCacheWrite },
         daily,
         pricing: filteredPricing,
         warnings: warnings.length ? warnings : undefined,
@@ -329,7 +357,7 @@ export async function getUsageSnapshot(
       v: 1,
       generatedAt,
       data: {
-        totals: { cost: 0, tokens: 0, requests: 0 },
+        totals: { cost: 0, tokens: 0, requests: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
         daily: [],
         pricing: [],
         warnings: [String(e?.message ?? e)],
