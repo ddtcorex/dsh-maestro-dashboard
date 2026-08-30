@@ -13,7 +13,7 @@ const result = await build({
   format: 'cjs',
   platform: 'browser',
   target: ['chrome100'],
-  external: ['react', 'react/jsx-runtime', '@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-ui-slots'],
+  external: ['react', 'react-dom', 'react/jsx-runtime', '@deepseek-ai/dsh-client-runtime', '@deepseek-ai/dsh-client-ui-slots', '@deepseek-ai/dsh-client-connection'],
   jsx: 'automatic',
   write: false,
   minify: process.env.NODE_ENV === 'production',

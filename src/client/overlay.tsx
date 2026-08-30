@@ -1,74 +1,106 @@
 import * as React from 'react'
+import { createPortal } from 'react-dom'
+import { BrandBadge } from './components/BrandMark.tsx'
 import { OverviewTab } from './tabs/OverviewTab.tsx'
+import { PluginsTab } from './tabs/PluginsTab.tsx'
+import { UsageTab } from './tabs/UsageTab.tsx'
+import { ReviewsTab } from './tabs/ReviewsTab.tsx'
 
-export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; usage?: any; reviews?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void }) {
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        background: 'var(--dsw-alias-bg-base)',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-      }}
-      role="dialog"
-      aria-label="Maestro Dashboard"
-      data-maestro-overlay
-    >
+type TabId = 'overview' | 'plugins' | 'usage' | 'reviews'
+
+const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
+  { id: 'overview', label: 'Overview', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /></svg> },
+  { id: 'plugins', label: 'Plugins', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><path d="M6 3a3 3 0 0 1 3 3v2h2a1 1 0 0 1 1 1v1a3 3 0 0 1-3 3h-1v-2h1a1 1 0 0 0 1-1v-1h-2v4H6v-4H4v1a1 1 0 0 0 1 1h1v2H5a3 3 0 0 1-3-3v-1a1 1 0 0 1 1-1h2V6a3 3 0 0 1 3-3z" stroke="currentColor" strokeWidth="1" fill="none" /></svg> },
+  { id: 'usage', label: 'Usage', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><path d="M2 12l3-4 3 2 4-6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /><path d="M11 4h3v3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg> },
+  { id: 'reviews', label: 'Reviews', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><path d="M3 3h10v8H6l-3 3V3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /><path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg> },
+]
+
+export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; plugins?: any; usage?: any; reviews?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void; initialTab?: TabId }) {
+  const [tab, setTab] = React.useState<TabId>(props.initialTab ?? 'overview')
+  const dialogRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') props.onClose?.() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [props.onClose])
+
+  React.useEffect(() => {
+    const prev = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    return () => { document.documentElement.style.overflow = prev }
+  }, [])
+
+  const overlayNode = (
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Maestro Dashboard" data-maestro-overlay style={{ position: 'fixed', inset: 0, zIndex: 2147483647, background: 'var(--dsw-alias-bg-base)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
-        [data-heatmap-wrap] { overflow-x:auto; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        [data-heatmap] { min-width: max-content; overflow-x:auto; }
-        @media (max-width: 390px) {
-          [data-maestro-content] { padding: 12px !important; }
-        }
+        [data-maestro-overlay] * { scrollbar-width: thin; scrollbar-color: var(--dsw-alias-scrollbar-bg-l2) transparent; }
+        [data-maestro-overlay] ::-webkit-scrollbar { width: 8px; height: 8px; }
+        [data-maestro-overlay] ::-webkit-scrollbar-thumb { background: var(--dsw-alias-scrollbar-bg-l2); border-radius: 999px; }
+        @media (prefers-reduced-motion: reduce) { [data-maestro-overlay] * { animation: none !important; transition: none !important; } }
+        [data-maestro-tab]:focus-visible { outline: 2px solid var(--dsw-alias-border-l3); outline-offset: 2px; }
+        [data-maestro-close]:focus-visible { outline: 2px solid var(--dsw-alias-border-l3); outline-offset: 2px; }
+        /* BrandBadge uses fixed #0A84FF so it stays visible on both light and dark bg-base */
+        [data-maestro-logo] { background: #0A84FF !important; background-color: #0A84FF !important; color: #fff !important; }
       `}</style>
-      <header
-        data-maestro-header
-        style={{
-          height: 56,
-          minHeight: 56,
-          flexShrink: 0,
-          boxSizing: 'border-box',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 16px',
-          borderBottom: '1px solid var(--dsw-alias-border-l2)',
-        }}
-      >
-        <div style={{ font: 'var(--dsw-font-s-strong-14)', letterSpacing: '.02em', color: 'var(--dsw-alias-label-primary)' }}>
-          Maestro Dashboard
+
+      <header style={{ height: 56, minHeight: 56, flex: 'none', display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', borderBottom: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-base)', position: 'sticky', top: 0, zIndex: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 auto' }}>
+          <BrandBadge outer={28} size={16} radius={8} />
+          <div style={{ minWidth: 0, display: 'grid', gap: 1 }}>
+            <div style={{ font: 'var(--dsw-font-s-strong-14)', color: 'var(--dsw-alias-label-primary)', letterSpacing: '.01em', whiteSpace: 'nowrap' as any }}>Maestro Dashboard</div>
+            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', display: 'none' }} data-subtitle>Control Center</div>
+          </div>
+          <span style={{ display: 'none', font: 'var(--dsw-font-xxs-12)', padding: '2px 8px', borderRadius: 999, background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)', marginLeft: 8 }} data-version-badge>v0.1</span>
         </div>
-        <button
-          onClick={props.onClose}
-          style={{
-            flex: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            border: 'none',
-            borderRadius: 8,
-            background: 'transparent',
-            cursor: 'pointer',
-            color: 'var(--dsw-alias-label-secondary)',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dsw-alias-interactive-bg-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          aria-label="Close"
-        >
-          <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', border: '1px solid var(--dsw-alias-border-l1)', padding: '4px 8px', borderRadius: 999, background: 'var(--dsw-alias-bg-layer-1)' }} data-kbd-hint>
+            <span style={{ background: 'var(--dsw-alias-bg-base)', border: '1px solid var(--dsw-alias-border-l1)', padding: '1px 5px', borderRadius: 6, fontFamily: 'var(--ds-font-family-code)' }}>Esc</span> close
+          </span>
+          <button data-maestro-close onClick={props.onClose} aria-label="Close dashboard" style={{ width: 32, height: 32, borderRadius: 10, border: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-layer-1)', color: 'var(--dsw-alias-label-secondary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--dsw-alias-interactive-bg-hover)')} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'var(--dsw-alias-bg-layer-1)')}>
+            <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><path d="M3 3 L13 13 M13 3 L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </button>
+        </div>
       </header>
 
-      <div data-maestro-content style={{ maxWidth: 1120, margin: '0 auto', padding: 16, display: 'grid', gap: 16, boxSizing: 'border-box', width: '100%' }}>
-        <OverviewTab snapshot={props.overview} reviewsSnapshot={props.reviews} usage={props.usage} usageRange={props.usageRange} onUsageRangeChange={props.onUsageRangeChange} />
-        {props.children}
+      <div style={{ flex: 'none', borderBottom: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-base)', position: 'sticky', top: 56, zIndex: 1 }}>
+        <div data-maestro-tabbar style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box' as any, overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, scrollbarWidth: 'none' as any }}>
+          <div style={{ display: 'flex', gap: 6, padding: 3, borderRadius: 999, background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', flex: 'none' }} role="tablist" aria-label="Dashboard sections">
+            {TABS.map((t) => {
+              const active = tab === t.id
+              return (
+                <button key={t.id} data-maestro-tab role="tab" aria-selected={active} aria-controls={`maestro-panel-${t.id}`} id={`maestro-tab-${t.id}`} onClick={() => setTab(t.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: 999, border: 'none', cursor: 'pointer', font: 'var(--dsw-font-xs-13)', fontWeight: active ? 600 : 500, background: active ? 'var(--dsw-alias-bg-base)' : 'transparent', color: active ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-label-secondary)', boxShadow: active ? '0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--dsw-alias-border-l1)' : 'none', transition: 'all 200ms ease', whiteSpace: 'nowrap' as any }}>
+                  <span style={{ display: 'inline-flex', opacity: active ? 1 : 0.8 }}>{t.icon}</span>
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' as any, background: 'var(--dsw-alias-bg-base)', paddingBottom: 16 }}>
+        <style>{`
+          @media (max-width: 640px) {
+            [data-kbd-hint] { display: none !important; }
+            [data-subtitle] { display: block !important; }
+            [data-version-badge] { display: none !important; }
+          }
+          @media (max-width: 390px) { [data-maestro-content] { padding: 12px !important; } }
+        `}</style>
+        <div data-maestro-content style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 16px', display: 'grid', gap: 16, boxSizing: 'border-box', width: '100%' }}>
+          <div id="maestro-panel-overview" role="tabpanel" aria-labelledby="maestro-tab-overview" hidden={tab !== 'overview'} style={{ display: tab === 'overview' ? 'block' : 'none' }}><OverviewTab snapshot={props.overview} reviewsSnapshot={props.reviews} usage={props.usage} usageRange={props.usageRange} onUsageRangeChange={props.onUsageRangeChange} /></div>
+          <div id="maestro-panel-plugins" role="tabpanel" aria-labelledby="maestro-tab-plugins" hidden={tab !== 'plugins'} style={{ display: tab === 'plugins' ? 'block' : 'none' }}><PluginsTab snapshot={props.plugins} /></div>
+          <div id="maestro-panel-usage" role="tabpanel" aria-labelledby="maestro-tab-usage" hidden={tab !== 'usage'} style={{ display: tab === 'usage' ? 'block' : 'none' }}><UsageTab snapshot={props.usage} range={props.usageRange} onRangeChange={props.onUsageRangeChange} /></div>
+          <div id="maestro-panel-reviews" role="tabpanel" aria-labelledby="maestro-tab-reviews" hidden={tab !== 'reviews'} style={{ display: tab === 'reviews' ? 'block' : 'none' }}><ReviewsTab snapshot={props.reviews} /></div>
+          {props.children}
+        </div>
       </div>
     </div>
   )
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(overlayNode, document.body)
+  }
+  return overlayNode
 }

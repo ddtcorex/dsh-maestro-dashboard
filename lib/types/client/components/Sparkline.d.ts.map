@@ -1,1 +1,1 @@
-{"version":3,"file":"Sparkline.d.ts","sourceRoot":"","sources":["../../../../src/client/components/Sparkline.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,KAAK,MAAM,OAAO,CAAA;AAC9B,wBAAgB,SAAS,CAAC,KAAK,EAAE;IAAE,IAAI,EAAE,MAAM,EAAE,CAAA;CAAE,4BAalD"}
+{"version":3,"file":"Sparkline.d.ts","sourceRoot":"","sources":["../../../../src/client/components/Sparkline.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,KAAK,MAAM,OAAO,CAAA;AAE9B,wBAAgB,SAAS,CAAC,KAAK,EAAE;IAAE,IAAI,EAAE,MAAM,EAAE,CAAC;IAAC,KAAK,CAAC,EAAE,MAAM,CAAC;IAAC,MAAM,CAAC,EAAE,MAAM,CAAA;CAAE,qBAsCnF"}

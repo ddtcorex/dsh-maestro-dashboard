@@ -3,7 +3,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { load as yamlLoad } from 'js-yaml'
+import * as yaml from 'js-yaml'
 
 interface GetPluginsOpts {
   patchYml?: string
@@ -120,16 +120,16 @@ export async function getPluginsSnapshot(opts: GetPluginsOpts = {}): Promise<Plu
       } catch {}
     }
     let parsedPatch: any = null
-    // Tolerant yaml parse via js-yaml — preserve existing health/warn handling
+    let patchHealth: any = null
     if (patchContent) {
       try {
-        parsedPatch = yamlLoad(patchContent)
+        parsedPatch = yaml.load(patchContent)
       } catch (e: any) {
-        return {
-          v: 1,
-          generatedAt,
-          data: { installed: [], marketplace: opts.marketplace ?? [], health: [{ id: 'patch', status: 'warn', detail: 'cordis.patch.yml parse error: ' + String(e?.message ?? e) }] }
-        }
+        // tolerant: try FAILSAFE (accepts !!js), else keep empty and surface warn
+        try {
+          parsedPatch = yaml.load(patchContent, { schema: yaml.FAILSAFE_SCHEMA } as any)
+        } catch {}
+        patchHealth = { id: 'patch', status: 'warn', detail: 'cordis.patch.yml parse error: ' + String(e?.message ?? e) }
       }
     }
 
@@ -270,10 +270,12 @@ export async function getPluginsSnapshot(opts: GetPluginsOpts = {}): Promise<Plu
     }
 
     const marketplace = opts.marketplace ?? []
+    const health: any[] = [{ id: 'plugins', status: 'ok' }]
+    if (patchHealth) health.unshift(patchHealth)
     return {
       v: 1,
       generatedAt,
-      data: { installed, marketplace, health: [{ id: 'plugins', status: 'ok' }] }
+      data: { installed, marketplace, health }
     }
   } catch (e: any) {
     return {

@@ -1,5 +1,7 @@
 import * as React from 'react';
 export declare function Sparkline(props: {
     data: number[];
-}): React.JSX.Element | null;
+    width?: number;
+    height?: number;
+}): React.JSX.Element;
 //# sourceMappingURL=Sparkline.d.ts.map

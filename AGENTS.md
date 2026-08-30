@@ -58,6 +58,13 @@ pnpm build    # tsc host + client && node scripts/build-client.mjs  -> lib/
 - **Flat lib contract** — `tsconfig.json` `rootDir: src/host` → `lib/index.js` flat; `pnpm-workspace.yaml` `allowBuilds.esbuild: true`; client tsc → `.client-build` + esbuild → `lib/client.js`.
 - Strict TDD with vitest; every deterministic operation is a tool, LLM is reasoning-only.
 
+## Branding — Shared Logo (sidebar + Dashboard popup + Settings UI)
+
+All Maestro surfaces MUST use the same mark — `src/client/components/BrandMark.tsx`:
+
+- **Mark**: `MaestroMark` `M2 11 L5 4 L8 9 L11 4 L14 11` `stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"` `viewBox="0 0 16 16"`.
+- **Badge**: `BrandBadge({outer 28 size 16 radius 8})` `data-maestro-logo` `background: var(--dsw-alias-brand-primary, #0A84FF); background-color:#0A84FF` `color:#fff` `border:1px solid rgba(0,0,0,0.08)` `boxShadow:0 0 0 1px var(--dsw-alias-border-l1)` — fixed `#0A84FF` keeps badge visible on both `bg-base #fff` (light) and `#121212` (dark); `[data-maestro-logo]{background:#0A84FF !important}` in `overlay.tsx` enforces it. Sidebar trigger uses `MaestroMark size 16` directly (`color:var(--dsw-alias-label-primary)`), popup/Settings card use `BrandBadge`. Never duplicate the path or use a different `strokeWidth`/background.
+
 ## Validation
 
 - `pnpm verify` + `pnpm test` green before any success claim.
