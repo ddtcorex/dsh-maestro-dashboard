@@ -8,6 +8,7 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   const [open, setOpen] = React.useState(false)
   const [health, setHealth] = React.useState<'ok' | 'warn' | 'error'>('ok')
   const [overview, setOverview] = React.useState<any>(null)
+  const [plugins, setPlugins] = React.useState<any>(null)
   const [usage, setUsage] = React.useState<any>(null)
   const [reviews, setReviews] = React.useState<any>(null)
   const [usageRange, setUsageRange] = React.useState<'7d' | '30d'>('7d')
@@ -34,13 +35,14 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
       return null
     }
     try {
-      const [o, u, r] = await Promise.all([doCall({ op: 'getOverview' }), doCall({ op: 'getUsage', range }), doCall({ op: 'getReviews', limit: 20 })])
+      const [o, pl, u, r] = await Promise.all([doCall({ op: 'getOverview' }), doCall({ op: 'getPlugins' }), doCall({ op: 'getUsage', range }), doCall({ op: 'getReviews', limit: 20 })])
       if (o) {
         setOverview(o)
         const healthList = (o?.data?.health ?? o?.health ?? []) as any[]
         const hasWarn = Array.isArray(healthList) && healthList.some((h: any) => h.status !== 'ok')
         setHealth(hasWarn ? 'warn' : 'ok')
       }
+      if (pl) setPlugins(pl)
       if (u) setUsage(u)
       if (r) setReviews(r)
     } catch {}
@@ -57,7 +59,7 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   return (
     <>
       <MaestroTrigger health={health} wide={wide ?? true} onClick={() => setOpen(true)} />
-      {open && <Overlay onClose={() => setOpen(false)} overview={overview} usage={usage} reviews={reviews} usageRange={usageRange} onUsageRangeChange={(r) => { setUsageRange(r); fetchAll(r) }} />}
+      {open && <Overlay onClose={() => setOpen(false)} overview={overview} plugins={plugins} usage={usage} reviews={reviews} usageRange={usageRange} onUsageRangeChange={(r) => { setUsageRange(r); fetchAll(r) }} />}
     </>
   )
 }
@@ -73,6 +75,12 @@ export default {
       style.textContent = `
         [class*="_footerActions"] { flex-direction: column !important; align-items: stretch !important; gap: 2px !important; }
         [class*="_footerActions"] [data-slot="sidebar.footer.action"] { display: flex !important; flex-direction: column !important; gap: 2px !important; width: 100% !important; }
+        @media (max-width: 1023px) {
+          [data-maestro-trigger] {
+            border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, .14)) !important;
+            background: var(--dsw-alias-button-elevated-fill, #ffffff) !important;
+          }
+        }
       `
       document.head.appendChild(style)
       return () => style.remove()

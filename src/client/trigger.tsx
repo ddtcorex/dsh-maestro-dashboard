@@ -1,4 +1,8 @@
 import * as React from 'react'
+import { BrandBadge, MaestroMark } from './components/BrandMark.tsx'
+
+// Re-export for tests / shared logo — both sidebar and popup use BrandBadge now
+export const MaestroLogo = MaestroMark
 
 export type HealthStatus = 'ok' | 'warn' | 'error'
 
@@ -6,16 +10,6 @@ const dotColor: Record<HealthStatus, string> = {
   ok: 'var(--dsw-alias-state-success-primary)',
   warn: 'var(--dsw-alias-state-warn-primary)',
   error: 'var(--dsw-alias-state-error-primary)',
-}
-
-// Maestro M-logo: geometric, currentColor, no external asset
-export function MaestroLogo(props: { size?: number }) {
-  const s = props.size ?? 16
-  return (
-    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 11 L5 4 L8 9 L11 4 L14 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
 }
 
 export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boolean; wide?: boolean; onClick?: () => void }) {
@@ -52,9 +46,7 @@ export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boole
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       aria-label="Maestro Dashboard"
     >
-      <span style={{ display: 'inline-flex', width: 16, height: 16, color: 'var(--dsw-alias-label-primary)', flex: 'none', alignItems: 'center', justifyContent: 'center' }}>
-        <MaestroLogo size={16} />
-      </span>
+      <BrandBadge outer={20} size={14} radius={6} />
       {!isRail && (
         <>
           <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', whiteSpace: 'nowrap' } as any}>Maestro</span>
