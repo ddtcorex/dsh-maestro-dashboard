@@ -46,7 +46,7 @@ export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boole
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       aria-label="Maestro Dashboard"
     >
-      <BrandBadge outer={20} size={14} radius={6} />
+      <BrandBadge outer={isRail ? 20 : 18} size={isRail ? 18 : 16} radius={isRail ? 6 : 4} />
       {!isRail && (
         <>
           <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', whiteSpace: 'nowrap' } as any}>Maestro</span>
