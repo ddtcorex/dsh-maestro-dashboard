@@ -68,13 +68,15 @@ export default {
   inject: ['slots', 'connection'] as const,
   apply(ctx: any) {
     // Fix footerActions horizontal layout: Cordis + Maestro were side-by-side (flex row)
-    // Force column so each action stacks vertically above Settings
+    // Force column so each action stacks vertically above Settings. Scoped to the
+    // sidebar foot area (_footArea → _footerActions): an unscoped [class*="_footerActions"]
+    // also matched DSH's question-composer footerActions and stacked its Skip/Next buttons.
     ctx.effect(() => {
       const style = document.createElement('style')
       style.setAttribute('data-maestro-footer-fix', '')
       style.textContent = `
-        [class*="_footerActions"] { flex-direction: column !important; align-items: stretch !important; gap: 2px !important; }
-        [class*="_footerActions"] [data-slot="sidebar.footer.action"] { display: flex !important; flex-direction: column !important; gap: 2px !important; width: 100% !important; }
+        [class*="_footArea"] [class*="_footerActions"] { flex-direction: column !important; align-items: stretch !important; gap: 2px !important; }
+        [class*="_footArea"] [class*="_footerActions"] [data-slot="sidebar.footer.action"] { display: flex !important; flex-direction: column !important; gap: 2px !important; width: 100% !important; }
         @media (max-width: 1023px) {
           [data-maestro-trigger] {
             border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, .14)) !important;

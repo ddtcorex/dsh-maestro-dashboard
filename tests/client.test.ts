@@ -33,4 +33,12 @@ describe('client files', () => {
     expect(readFileSync('src/client/components/Heatmap.tsx','utf8')).toContain('var(--dsw-alias-')
     expect(readFileSync('src/client/components/Sparkline.tsx','utf8')).toContain('var(--dsw-alias-brand-primary)')
   })
+  test('footer column fix is scoped to the sidebar foot area (regression: unscoped rule stacked DSH question-composer footerActions)', () => {
+    const s = readFileSync('src/client/index.tsx', 'utf8')
+    expect(s).toContain('maestro footer column fix')
+    // Scoped: stack only footerActions living inside the sidebar foot area.
+    expect(s).toContain('[class*="_footArea"] [class*="_footerActions"]')
+    // Never the bare global selector that matched every _footerActions element.
+    expect(s).not.toContain('\n        [class*="_footerActions"] {')
+  })
 })
