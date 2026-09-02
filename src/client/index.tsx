@@ -77,6 +77,11 @@ export default {
       style.textContent = `
         [class*="_footArea"] [class*="_footerActions"] { flex-direction: column !important; align-items: stretch !important; gap: 2px !important; }
         [class*="_footArea"] [class*="_footerActions"] [data-slot="sidebar.footer.action"] { display: flex !important; flex-direction: column !important; gap: 2px !important; width: 100% !important; }
+        /* Width align: Maestro 256 vs Settings 260 vs Cordis badge 260 — both used calc(100%+4px) with -2px margin, overflowing footArea (256). Normalize to 100% */
+        [class*="_footArea"] [data-maestro-trigger] { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+        [class*="_footArea"] [class*="zWKi1a_trigger"] { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; margin-left: 0 !important; margin-right: 0 !important; }
+        [class*="_footArea"] [class*="FNBb8a_badge"] { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; margin-left: 0 !important; margin-right: 0 !important; left: auto !important; right: auto !important; }
+        [class*="_footArea"] [class*="FNBb8a_layer"], [class*="_footArea"] [class*="FNBb8a_footerButtons"] { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
         @media (max-width: 1023px) {
           [data-maestro-trigger] {
             border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, .14)) !important;
