@@ -1,6 +1,6 @@
 {
   "name": "@ddtcorex/dsh-maestro-dashboard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "packageManager": "pnpm@11.7.0",
   "description": "Maestro Dashboard — unified Control Center (Overview/Plugins/Usage) DSH-native",
