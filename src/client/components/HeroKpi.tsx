@@ -32,7 +32,16 @@ export function HeroKpi(props: { kpis: Kpi[] }) {
     >
       <style>{`
         @media (max-width: 1024px) { [data-kpi-grid] { grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
-        @media (max-width: 640px) { [data-kpi-grid] { grid-template-columns: 1fr !important; } }
+        @media (max-width: 640px) {
+          [data-kpi-grid] { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 10px !important; }
+          [data-kpi-grid] [data-testid="kpi"] { padding: 12px 12px 10px !important; border-radius: 14px !important; }
+        }
+        @media (max-width: 390px) {
+          [data-kpi-grid] { gap: 8px !important; }
+          [data-kpi-grid] [data-testid="kpi"] { padding: 10px 10px 8px !important; }
+        }
+        @media (max-width: 360px) { [data-kpi-grid] { grid-template-columns: 1fr !important; } }
+        @media (prefers-reduced-motion: reduce) { [data-kpi-grid] [data-testid="kpi"] { transition: none !important; } }
       `}</style>
       {props.kpis.map((k) => (
         <div
