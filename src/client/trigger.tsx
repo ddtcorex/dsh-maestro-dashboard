@@ -22,17 +22,18 @@ export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boole
       data-maestro-trigger=""
       onClick={props.onClick}
       style={{
-        flex: 'none',
+        flex: '0 0 auto',
         display: 'flex',
         alignItems: 'center',
         gap: isRail ? 0 : '8px',
-        width: isRail ? '36px' : 'calc(100% + 4px)',
-        height: isRail ? '36px' : '42px',
-        margin: isRail ? '8px 0 10px' : '4px -2px',
+        width: isRail ? '36px' : '100%',
+        maxWidth: '100%',
+        height: isRail ? '36px' : '36px',
+        margin: isRail ? '8px auto' : '6px 0 4px',
         padding: isRail ? 0 : '0 10px 0 8px',
         boxSizing: 'border-box',
-        border: 'none',
-        borderRadius: isRail ? '50%' : '12px',
+        border: '1px solid transparent',
+        borderRadius: isRail ? '50%' : '8px',
         background: 'transparent',
         cursor: 'pointer',
         overflow: 'hidden',
@@ -42,8 +43,14 @@ export function MaestroTrigger(props: { health?: HealthStatus; collapsed?: boole
         lineHeight: '22px',
         justifyContent: isRail ? 'center' : 'flex-start',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--dsw-alias-interactive-bg-hover)')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'var(--dsw-alias-interactive-bg-hover)'
+        e.currentTarget.style.borderColor = 'var(--dsw-alias-border-l1)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'transparent'
+        e.currentTarget.style.borderColor = 'transparent'
+      }}
       aria-label="Maestro Dashboard"
     >
       <BrandBadge outer={isRail ? 20 : 18} size={isRail ? 18 : 16} radius={isRail ? 6 : 4} />
