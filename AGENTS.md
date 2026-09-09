@@ -24,7 +24,7 @@ Part of the Maestro Harness suite (installed as a DSH plugin). Aggregates health
 - `src/client/overlay.tsx` — fullscreen portal with primary tabs Overview/Plugins/Usage.
 - `src/client/tabs/` — `OverviewTab.tsx`, `PluginsTab.tsx`, `UsageTab.tsx`.
 - `src/client/components/` — `HeroKpi.tsx`, `Heatmap.tsx`, `Sparkline.tsx`, `PluginCard.tsx`, `PricingTable.tsx`; all token-native `var(--dsw-*)`.
-- `lib/` — committed build output. Generated; do not hand-edit.
+- `lib/` — gitignored build output. Generated; do not hand-edit, never commit.
 - `scripts/build-client.mjs` — client bundle builder (esbuild → `lib/client.js` wrapped with `window.__ModuleLoader__.load`).
 - `tests/*.test.ts` — vitest suites (8 files): scaffold, types, overview, plugins, usage, client, dashboard RPC, settings.
 
@@ -38,7 +38,7 @@ pnpm test     # vitest run
 pnpm build    # tsc host + client && node scripts/build-client.mjs  -> lib/
 ```
 
-`pnpm build` is the required gate after any source change; `lib/` is committed, so a change is incomplete until the build refreshes it. `test -f lib/index.js` must pass — the host build is flat (`rootDir: src/host` → `lib/index.js`, not `lib/host/`).
+`pnpm build` is the required gate after any source change; `lib/` is gitignored, so rebuild locally after pull and before restart — a change is incomplete until the build refreshes it. `test -f lib/index.js` must pass — the host build is flat (`rootDir: src/host` → `lib/index.js`, not `lib/host/`).
 
 ## Git workflow
 
