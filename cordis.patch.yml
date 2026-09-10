@@ -4,4 +4,8 @@
     - id: dsh-maestro-dashboard
       name: '@ddtcorex/dsh-maestro-dashboard'
       channel: /dsh-maestro-dashboard
+      # rpc.handle registers a webServer route inside an effect fiber which carries only the row's inject (not the module's);
+      # without webServer the row fails on harnesses that provide webServer after rows apply
+      # (DSH 0.1.5-rc.1+).
+      inject: ['connection', 'webServer']
       config: {}
