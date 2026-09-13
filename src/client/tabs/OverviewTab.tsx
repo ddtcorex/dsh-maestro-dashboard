@@ -44,7 +44,11 @@ export function OverviewTab(props: {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <HeroKpi kpis={kpis.map((k: any) => ({ ...k, sub: k.id === 'tunnel' ? (tunnel?.hostname ?? k.value) : undefined }))} />
+      {/* `sub` must ADD information. It used to fall back to the tile's own value
+          (`tunnel?.hostname ?? k.value`), so a configured-but-not-running tunnel
+          printed "Tunnel / configured / configured" — the same word twice. Only a
+          public hostname earns a second line. */}
+      <HeroKpi kpis={kpis.map((k: any) => (k.id === 'tunnel' && tunnel?.hostname ? { ...k, sub: tunnel.hostname } : k))} />
 
       {/* Bento 2-col: Heatmap + Mini trend */}
       <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1.2fr .8fr' }} data-bento="heatmap-trend">
