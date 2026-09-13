@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.2] - 2026-09-14
+
+### Fixed
+
+- **Tunnel KPI no longer repeats its own value** — the Overview Tunnel card
+  printed its state twice, e.g. `Tunnel / configured / configured`, because
+  `HeroKpi`'s `sub` fell back to the tile's own value whenever a
+  configured-but-not-running tunnel had no public hostname. `sub` now carries
+  only the hostname, so a tile without one shows its value once; a new render
+  test covers both cases (#20).
+
+### Changed
+
+- **Corrected the `lib/` build-output claim in `CONTRIBUTING.md`** — the guide
+  called `lib/` committed build output, which sent contributors looking for a
+  generated file in git even though `lib/` is gitignored with zero tracked
+  files. It now says `lib/` is gitignored and must be refreshed with
+  `pnpm build`; that matters because a `link:` install loads `lib/` from disk
+  (#19).
+
 ## [0.3.1] - 2026-09-13
 
 ### Fixed
