@@ -4,6 +4,14 @@
   "private": false,
   "packageManager": "pnpm@11.7.0",
   "description": "Maestro Dashboard — unified Control Center (Overview/Plugins/Usage) DSH-native",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ddtcorex/dsh-maestro-dashboard.git"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
