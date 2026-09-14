@@ -27,11 +27,11 @@ describe('Overview tunnel KPI', () => {
     const html = render({
       data: {
         kpis: [{ id: 'tunnel', label: 'Tunnel', value: 'enabled', status: 'ok' }],
-        tunnel: { hostname: 'dsh-home.example.com' },
+        tunnel: { hostname: 'tunnel.example.com' },
         heatmap: [],
       },
     })
     expect(html).toContain('enabled')
-    expect(html).toContain('dsh-home.example.com')
+    expect(html).toContain('tunnel.example.com')
   })
 })
