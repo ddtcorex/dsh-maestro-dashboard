@@ -1,9 +1,6 @@
 import * as React from 'react'
 
-export type ActivityTools = Array<{
-  key: string
-  agg: { inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; turns: number }
-}>
+export type ActivityTools = Array<{ tool: string; calls: number }>
 
 export type ActivityErrors = Array<{
   tool: string
@@ -29,12 +26,10 @@ function fmtTs(ts: number): string {
 export function ActivityTab(props: { activity?: ActivityData }) {
   const activity = props.activity ?? null
   if (!activity) return null
-  const tools = [...(activity.tools ?? [])].sort(
-    (a, b) =>
-      b.agg.inputTokens + b.agg.outputTokens + b.agg.cacheReadTokens - (a.agg.inputTokens + a.agg.outputTokens + a.agg.cacheReadTokens),
-  )
+  const tools = [...(activity.tools ?? [])].sort((a, b) => b.calls - a.calls)
   const errors = [...(activity.errors ?? [])].sort((a, b) => b.count - a.count)
   const latency = activity.latency ?? { count: 0, p50: 0, p95: 0, p99: 0 }
+  const hasLatency = latency.count > 0
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
@@ -44,40 +39,47 @@ export function ActivityTab(props: { activity?: ActivityData }) {
       </div>
 
       {/* Latency percentiles */}
-      <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0,1fr))' }} data-activity-latency>
-        <style>{`
-          @media (max-width: 768px) { [data-activity-latency] { grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
-        `}</style>
-        {[
-          { label: 'Samples', value: String(latency.count) },
-          { label: 'p50', value: `${Math.round(latency.p50)} ms` },
-          { label: 'p95', value: `${Math.round(latency.p95)} ms` },
-          { label: 'p99', value: `${Math.round(latency.p99)} ms` },
-        ].map((k) => (
-          <div key={k.label} style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, padding: '14px 16px', background: 'var(--dsw-alias-bg-layer-1)' }}>
-            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', letterSpacing: '.04em', textTransform: 'uppercase' as any }}>{k.label}</div>
-            <div style={{ font: 'var(--dsw-font-markdown-h3)', color: 'var(--dsw-alias-label-primary)', marginTop: 6 }}>{k.value}</div>
+      <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, background: 'var(--dsw-alias-bg-layer-1)', padding: 16, display: 'grid', gap: 12 }}>
+        <div style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)' }}>Tool latency</div>
+        {!hasLatency ? (
+          <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>No latency samples captured yet.</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(4, minmax(0,1fr))' }} data-activity-latency>
+            <style>{`
+              @media (max-width: 768px) { [data-activity-latency] { grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
+            `}</style>
+            {[
+              { label: 'Samples', value: String(latency.count) },
+              { label: 'p50', value: `${Math.round(latency.p50)} ms` },
+              { label: 'p95', value: `${Math.round(latency.p95)} ms` },
+              { label: 'p99', value: `${Math.round(latency.p99)} ms` },
+            ].map((k) => (
+              <div key={k.label} style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, padding: '14px 16px', background: 'var(--dsw-alias-bg-layer-1)' }}>
+                <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', letterSpacing: '.04em', textTransform: 'uppercase' as any }}>{k.label}</div>
+                <div style={{ font: 'var(--dsw-font-markdown-h3)', color: 'var(--dsw-alias-label-primary)', marginTop: 6 }}>{k.value}</div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Per-tool token breakdown */}
+      {/* Per-tool call counts (recent ring) */}
       <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, background: 'var(--dsw-alias-bg-layer-1)', padding: 16, display: 'grid', gap: 12 }}>
-        <div style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)' }}>Tokens by tool</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)' }}>Calls by tool</div>
+          <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>recent events</span>
+        </div>
         {tools.length === 0 ? (
           <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>No tool activity recorded yet.</div>
         ) : (
-          <div style={{ display: 'grid', gap: 6 }} role="table" aria-label="Tokens by tool">
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) repeat(4, minmax(0,1fr))', gap: 8, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', textTransform: 'uppercase' as any, letterSpacing: '.04em' }} role="row">
-              <span>Tool</span><span style={{ textAlign: 'right' }}>Turns</span><span style={{ textAlign: 'right' }}>In</span><span style={{ textAlign: 'right' }}>Out</span><span style={{ textAlign: 'right' }}>Cache</span>
+          <div style={{ display: 'grid', gap: 6 }} role="table" aria-label="Calls by tool">
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 80px', gap: 8, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', textTransform: 'uppercase' as any, letterSpacing: '.04em' }} role="row">
+              <span>Tool</span><span style={{ textAlign: 'right' }}>Calls</span>
             </div>
             {tools.map((t) => (
-              <div key={t.key} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) repeat(4, minmax(0,1fr))', gap: 8, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-primary)', borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: 6 }} role="row">
-                <span style={{ overflowWrap: 'anywhere', fontWeight: 600 }}>{t.key || '(unknown)'}</span>
-                <span style={{ textAlign: 'right' }}>{Number(t.agg.turns ?? 0).toLocaleString()}</span>
-                <span style={{ textAlign: 'right' }}>{Number(t.agg.inputTokens ?? 0).toLocaleString()}</span>
-                <span style={{ textAlign: 'right' }}>{Number(t.agg.outputTokens ?? 0).toLocaleString()}</span>
-                <span style={{ textAlign: 'right' }}>{Number(t.agg.cacheReadTokens ?? 0).toLocaleString()}</span>
+              <div key={t.tool} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 80px', gap: 8, font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-primary)', borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: 6 }} role="row">
+                <span style={{ overflowWrap: 'anywhere', fontWeight: 600 }}>{t.tool || '(unknown)'}</span>
+                <span style={{ textAlign: 'right' }}>{Number(t.calls ?? 0).toLocaleString()}</span>
               </div>
             ))}
           </div>

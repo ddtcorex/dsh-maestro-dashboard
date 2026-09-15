@@ -33,15 +33,15 @@ describe('client files', () => {
     const a = readFileSync('src/client/tabs/ActivityTab.tsx', 'utf8')
     expect(a).toContain('ActivityTab')
     expect(a).toContain('var(--dsw-alias-')
-    // Activity shows per-tool/error/latency splits — never Usage-owned totals.
+    // Activity shows calls-by-tool/error/latency splits — never Usage-owned totals.
     expect(a).toContain('latency')
-    expect(a).toContain('turns')
+    expect(a).toContain('calls')
     expect(a).not.toContain('PricingTable')
     expect(a).not.toContain('Sparkline')
     // Dashboard client queries observe directly (no host proxy).
     const idx = readFileSync('src/client/index.tsx', 'utf8')
     expect(idx).toContain('/dsh-maestro-observe')
-    expect(idx).toContain('groupBy')
+    expect(idx).toContain("kind: 'tool'")
   })
   test('hero/heatmap/sparkline use SVG and tokens', () => {
     expect(readFileSync('src/client/components/HeroKpi.tsx','utf8')).toContain('var(--dsw-alias-')

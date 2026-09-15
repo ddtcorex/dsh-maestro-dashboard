@@ -53,18 +53,29 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   }, [doCallOn, usageRange])
 
   // Observe-backed activity (optional): hidden when the observe channel is absent.
+  // NOTE: token usage is captured on step records (tool=null), so per-tool tokens are
+  // structurally zero today — tools are counted from recent trace records instead.
   const fetchActivity = React.useCallback(async () => {
     try {
-      const [c, e, l] = await Promise.all([
-        doCallOn(OBSERVE_CHANNEL, 'cost', { groupBy: 'tool' }),
+      const [t, e, l] = await Promise.all([
+        doCallOn(OBSERVE_CHANNEL, 'trace', { limit: 500, kind: 'tool' }),
         doCallOn(OBSERVE_CHANNEL, 'errors', {}),
         doCallOn(OBSERVE_CHANNEL, 'latency', {}),
       ])
-      if (c?.groups && e?.groups && l?.latency) {
-        setActivity({ tools: c.groups, errors: e.groups, latency: l.latency })
-      } else {
+      if (!t?.records || !e?.groups || !l?.latency) {
         setActivity(null)
+        return
       }
+      const counts = new Map<string, number>()
+      for (const r of t.records as Array<{ tool?: string }>) {
+        const k = r.tool ?? ''
+        counts.set(k, (counts.get(k) ?? 0) + 1)
+      }
+      setActivity({
+        tools: [...counts.entries()].map(([tool, calls]) => ({ tool, calls })),
+        errors: e.groups,
+        latency: l.latency,
+      })
     } catch {
       setActivity(null)
     }
