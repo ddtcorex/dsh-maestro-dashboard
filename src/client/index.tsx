@@ -3,6 +3,7 @@ import { MaestroTrigger } from './trigger.tsx'
 import { Overlay } from './overlay.tsx'
 
 const DASHBOARD_CHANNEL = '/dsh-maestro-dashboard' as const
+const OBSERVE_CHANNEL = '/dsh-maestro-observe' as const
 
 function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   const [open, setOpen] = React.useState(false)
@@ -12,28 +13,31 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
   const [usage, setUsage] = React.useState<any>(null)
   const [reviews, setReviews] = React.useState<any>(null)
   const [usageRange, setUsageRange] = React.useState<'7d' | '30d'>('7d')
+  const [activity, setActivity] = React.useState<any>(null)
+
+  const doCallOn = React.useCallback(async (channel: string, endpoint: string, payload: any) => {
+    const conn = (ctx as any)?.connection ?? (ctx as any)?.get?.('connection')
+    if (conn?.rpc?.call) {
+      try {
+        const r: any = await conn.rpc.call(channel, '', payload)
+        return r?.ok ? r.value : r
+      } catch {
+        try {
+          const r2: any = await conn.rpc.call(channel, endpoint, payload)
+          return r2?.ok ? r2.value : r2
+        } catch {}
+      }
+    }
+    const host = (window as any).__dshHost ?? (globalThis as any).host
+    if (host?.call) {
+      const r: any = await host.call(channel, '', payload)
+      return r?.ok ? r.value : r
+    }
+    return null
+  }, [ctx])
 
   const fetchAll = React.useCallback(async (range: '7d' | '30d' = usageRange) => {
-    const conn = (ctx as any)?.connection ?? (ctx as any)?.get?.('connection')
-    const doCall = async (payload: any) => {
-      if (conn?.rpc?.call) {
-        try {
-          const r: any = await conn.rpc.call(DASHBOARD_CHANNEL, '', payload)
-          return r?.ok ? r.value : r
-        } catch {
-          try {
-            const r2: any = await conn.rpc.call(DASHBOARD_CHANNEL, payload.op, payload)
-            return r2?.ok ? r2.value : r2
-          } catch {}
-        }
-      }
-      const host = (window as any).__dshHost ?? (globalThis as any).host
-      if (host?.call) {
-        const r: any = await host.call(DASHBOARD_CHANNEL, '', payload)
-        return r?.ok ? r.value : r
-      }
-      return null
-    }
+    const doCall = (payload: any) => doCallOn(DASHBOARD_CHANNEL, payload.op, payload)
     try {
       const [o, pl, u, r] = await Promise.all([doCall({ op: 'getOverview' }), doCall({ op: 'getPlugins' }), doCall({ op: 'getUsage', range }), doCall({ op: 'getReviews', limit: 20 })])
       if (o) {
@@ -46,20 +50,50 @@ function DashboardApp({ ctx, wide }: { ctx: any; wide?: boolean }) {
       if (u) setUsage(u)
       if (r) setReviews(r)
     } catch {}
-  }, [ctx, usageRange])
+  }, [doCallOn, usageRange])
+
+  // Observe-backed activity (optional): hidden when the observe channel is absent.
+  // NOTE: token usage is captured on step records (tool=null), so per-tool tokens are
+  // structurally zero today — tools are counted from recent trace records instead.
+  const fetchActivity = React.useCallback(async () => {
+    try {
+      const [t, e, l] = await Promise.all([
+        doCallOn(OBSERVE_CHANNEL, 'trace', { limit: 500, kind: 'tool' }),
+        doCallOn(OBSERVE_CHANNEL, 'errors', {}),
+        doCallOn(OBSERVE_CHANNEL, 'latency', {}),
+      ])
+      if (!t?.records || !e?.groups || !l?.latency) {
+        setActivity(null)
+        return
+      }
+      const counts = new Map<string, number>()
+      for (const r of t.records as Array<{ tool?: string }>) {
+        const k = r.tool ?? ''
+        counts.set(k, (counts.get(k) ?? 0) + 1)
+      }
+      setActivity({
+        tools: [...counts.entries()].map(([tool, calls]) => ({ tool, calls })),
+        errors: e.groups,
+        latency: l.latency,
+      })
+    } catch {
+      setActivity(null)
+    }
+  }, [doCallOn])
 
   // Lazy queries: only fetch after user clicks Maestro button (overlay open) — avoids background load on every DSH boot
   React.useEffect(() => {
     if (!open) return
     fetchAll(usageRange)
-    const timer = setInterval(() => fetchAll(usageRange), 30000)
+    fetchActivity()
+    const timer = setInterval(() => { fetchAll(usageRange); fetchActivity() }, 30000)
     return () => clearInterval(timer)
-  }, [open, fetchAll, usageRange])
+  }, [open, fetchAll, fetchActivity, usageRange])
 
   return (
     <>
       <MaestroTrigger health={health} wide={wide ?? true} onClick={() => setOpen(true)} />
-      {open && <Overlay onClose={() => setOpen(false)} overview={overview} plugins={plugins} usage={usage} reviews={reviews} usageRange={usageRange} onUsageRangeChange={(r) => { setUsageRange(r); fetchAll(r) }} />}
+      {open && <Overlay onClose={() => setOpen(false)} overview={overview} plugins={plugins} usage={usage} reviews={reviews} activity={activity} usageRange={usageRange} onUsageRangeChange={(r) => { setUsageRange(r); fetchAll(r) }} />}
     </>
   )
 }

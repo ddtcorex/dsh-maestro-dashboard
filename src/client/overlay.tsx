@@ -5,8 +5,9 @@ import { OverviewTab } from './tabs/OverviewTab.tsx'
 import { PluginsTab } from './tabs/PluginsTab.tsx'
 import { UsageTab } from './tabs/UsageTab.tsx'
 import { ReviewsTab } from './tabs/ReviewsTab.tsx'
+import { ActivityTab } from './tabs/ActivityTab.tsx'
 
-type TabId = 'overview' | 'plugins' | 'usage' | 'reviews'
+type TabId = 'overview' | 'plugins' | 'usage' | 'reviews' | 'activity'
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Overview', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" /></svg> },
@@ -15,8 +16,12 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'reviews', label: 'Reviews', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><path d="M3 3h10v8H6l-3 3V3z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /><path d="M5 7h6M5 10h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg> },
 ]
 
-export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; plugins?: any; usage?: any; reviews?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void; initialTab?: TabId }) {
+const ACTIVITY_TAB = { id: 'activity', label: 'Activity', icon: <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden><path d="M2 8h3l2-5 3 10 2-5h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg> } as const
+
+export function Overlay(props: { onClose?: () => void; children?: React.ReactNode; overview?: any; plugins?: any; usage?: any; reviews?: any; activity?: any; usageRange?: '7d' | '30d'; onUsageRangeChange?: (r: '7d' | '30d') => void; initialTab?: TabId }) {
   const [tab, setTab] = React.useState<TabId>(props.initialTab ?? 'overview')
+  const activity = props.activity ?? null
+  const tabs = activity !== null ? [...TABS, { ...ACTIVITY_TAB }] : TABS
   const dialogRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -61,7 +66,7 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
               <span style={{ font: 'var(--dsw-font-s-strong-15)', color: 'var(--dsw-alias-label-primary)', letterSpacing: '-.01em', lineHeight: '18px', whiteSpace: 'nowrap' as const }}>Maestro</span>
               <span style={{ font: 'var(--dsw-font-xxs-12)', fontWeight: 500, letterSpacing: '.04em', textTransform: 'uppercase' as const, color: 'var(--dsw-alias-label-tertiary)', background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', padding: '2px 7px', borderRadius: 999, lineHeight: '14px', whiteSpace: 'nowrap' as const }} data-header-badge>Dashboard</span>
             </div>
-            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', lineHeight: '14px', letterSpacing: '.01em' }} data-header-subtitle>Unified Control Center · Overview · Plugins · Usage · Reviews</div>
+            <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', lineHeight: '14px', letterSpacing: '.01em' }} data-header-subtitle>Unified Control Center · Overview · Plugins · Usage · Reviews{activity !== null ? ' · Activity' : ''}</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
@@ -77,7 +82,7 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
       <div style={{ flex: 'none', borderBottom: '1px solid var(--dsw-alias-border-l2)', background: 'var(--dsw-alias-bg-base)', position: 'sticky', top: 56, zIndex: 1 }}>
         <div data-maestro-tabbar style={{ maxWidth: 1200, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box' as any, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' as any, scrollbarWidth: 'none' as any, overscrollBehaviorX: 'contain' as any, touchAction: 'pan-x' as any }}>
           <div style={{ display: 'flex', gap: 6, padding: 3, borderRadius: 999, background: 'var(--dsw-alias-bg-layer-2)', border: '1px solid var(--dsw-alias-border-l1)', flex: 'none' }} role="tablist" aria-label="Dashboard sections">
-            {TABS.map((t) => {
+            {tabs.map((t) => {
               const active = tab === t.id
               return (
                 <button key={t.id} data-maestro-tab role="tab" aria-selected={active} aria-controls={`maestro-panel-${t.id}`} id={`maestro-tab-${t.id}`} onClick={(e) => { setTab(t.id); try { (e.currentTarget as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }) } catch {} }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: 999, border: 'none', cursor: 'pointer', font: 'var(--dsw-font-xs-13)', fontWeight: active ? 600 : 500, background: active ? 'var(--dsw-alias-bg-base)' : 'transparent', color: active ? 'var(--dsw-alias-label-primary)' : 'var(--dsw-alias-label-secondary)', boxShadow: active ? '0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--dsw-alias-border-l1)' : 'none', transition: 'all 200ms ease', whiteSpace: 'nowrap' as any, flex: 'none' as any, touchAction: 'manipulation' as any }}>
@@ -110,6 +115,7 @@ export function Overlay(props: { onClose?: () => void; children?: React.ReactNod
           <div id="maestro-panel-plugins" role="tabpanel" aria-labelledby="maestro-tab-plugins" hidden={tab !== 'plugins'} style={{ display: tab === 'plugins' ? 'block' : 'none' }}><PluginsTab snapshot={props.plugins} /></div>
           <div id="maestro-panel-usage" role="tabpanel" aria-labelledby="maestro-tab-usage" hidden={tab !== 'usage'} style={{ display: tab === 'usage' ? 'block' : 'none' }}><UsageTab snapshot={props.usage} range={props.usageRange} onRangeChange={props.onUsageRangeChange} /></div>
           <div id="maestro-panel-reviews" role="tabpanel" aria-labelledby="maestro-tab-reviews" hidden={tab !== 'reviews'} style={{ display: tab === 'reviews' ? 'block' : 'none' }}><ReviewsTab snapshot={props.reviews} /></div>
+          {activity !== null && <div id="maestro-panel-activity" role="tabpanel" aria-labelledby="maestro-tab-activity" hidden={tab !== 'activity'} style={{ display: tab === 'activity' ? 'block' : 'none' }}><ActivityTab activity={activity} /></div>}
           {props.children}
         </div>
       </div>
