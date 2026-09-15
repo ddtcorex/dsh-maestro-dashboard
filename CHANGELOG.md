@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.0] - 2026-09-15
+
+### Added
+
+- **Activity tab backed by observe RPC** — the Dashboard calls
+  `/dsh-maestro-observe` directly (`trace` with `kind: 'tool'`, `errors`,
+  `latency`) and renders calls-by-tool, error groups (tool + signature +
+  count + last seen), and latency p50/p95/p99. The tab hides entirely when
+  observe is not installed. No overlap with Usage (cost/tokens/sparkline/
+  budget/pricing) or Plugins (versions/status). Client-only change: a browser
+  refresh loads it, no host restart needed (#25).
+
+### Noted
+
+- Per-tool token attribution is structurally zero today (usage is captured on
+  step records with `tool: null`), so tools are counted from the recent trace
+  ring; `latency_ms` is not captured yet, so the latency section shows an
+  honest empty state. Both are observe-capture follow-ups, not dashboard gaps.
+
 ## [0.3.2] - 2026-09-14
 
 ### Fixed
