@@ -7,12 +7,15 @@ describe('client files', () => {
     expect(s).toContain('var(--dsw-alias-')
     expect(s).toContain('MaestroLogo')
   })
-  test('overlay renders Overview/Plugins/Usage/Reviews tabs and uses DSW tokens', () => {
+  test('overlay renders Overview/Plugins/Usage/Reviews/Activity tabs and uses DSW tokens', () => {
     const s = readFileSync('src/client/overlay.tsx', 'utf8')
     expect(s).toContain('OverviewTab')
     expect(s).toContain('PluginsTab')
     expect(s).toContain('UsageTab')
     expect(s).toContain('ReviewsTab')
+    expect(s).toContain('ActivityTab')
+    // Activity tab is gated on observe presence — never rendered without data.
+    expect(s).toMatch(/activity\s*!==?\s*null|activity\s*&&/)
     expect(s).toContain('var(--dsw-alias-')
     expect(s).not.toContain('data-maestro-bottom-nav')
     const o = readFileSync('src/client/tabs/OverviewTab.tsx', 'utf8')
@@ -27,6 +30,18 @@ describe('client files', () => {
     const r = readFileSync('src/client/tabs/ReviewsTab.tsx', 'utf8')
     expect(r).toContain('ReviewsTab')
     expect(r).toContain('var(--dsw-alias-')
+    const a = readFileSync('src/client/tabs/ActivityTab.tsx', 'utf8')
+    expect(a).toContain('ActivityTab')
+    expect(a).toContain('var(--dsw-alias-')
+    // Activity shows per-tool/error/latency splits — never Usage-owned totals.
+    expect(a).toContain('latency')
+    expect(a).toContain('turns')
+    expect(a).not.toContain('PricingTable')
+    expect(a).not.toContain('Sparkline')
+    // Dashboard client queries observe directly (no host proxy).
+    const idx = readFileSync('src/client/index.tsx', 'utf8')
+    expect(idx).toContain('/dsh-maestro-observe')
+    expect(idx).toContain('groupBy')
   })
   test('hero/heatmap/sparkline use SVG and tokens', () => {
     expect(readFileSync('src/client/components/HeroKpi.tsx','utf8')).toContain('var(--dsw-alias-')
