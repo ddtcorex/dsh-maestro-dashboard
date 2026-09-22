@@ -1,6 +1,6 @@
 {
   "name": "@ddtcorex/dsh-maestro-dashboard",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": false,
   "packageManager": "pnpm@11.7.0",
   "description": "Maestro Dashboard — unified Control Center (Overview/Plugins/Usage) DSH-native",
@@ -55,7 +55,7 @@
     "@deepseek-ai/dsh-client-connection": "^0.1.0-rc.6 || >=0.1.1-rc.0 <0.2.0"
   },
   "dependencies": {
-    "@ddtcorex/dsh-maestro-config-lib": "workspace:^0.2.0",
+    "@ddtcorex/dsh-maestro-config-lib": "workspace:^0.3.0",
     "zod": "^3.23.0",
     "js-yaml": "^4.1.0",
     "react-dom": "^18.3.0"

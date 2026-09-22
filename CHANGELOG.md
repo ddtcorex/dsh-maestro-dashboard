@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2026-09-22
+
+### Changed
+
+- Follow `@ddtcorex/dsh-maestro-config-lib` to `^0.3.0` (unset support).
+
 ## [0.4.0] - 2026-09-15
 
 ### Added
