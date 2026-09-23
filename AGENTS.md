@@ -6,7 +6,7 @@
 
 Unified Control Center (Overview/Plugins/Usage) DSH-native plugin for the DeepSeek Harness (DSH). One Cordis row (`id: dsh-maestro-dashboard`) with a host half (Node) and a client half (browser Dashboard overlay).
 
-Names by boundary: npm package = `@ddtcorex/dsh-maestro-dashboard`; Cordis patch row id = `dsh-maestro-dashboard`; RPC channel = `/dsh-maestro-dashboard` (loopback authority).
+Names by boundary: npm package = `@ddtcorex/dsh-maestro-dashboard`; Cordis patch row id = `dsh-maestro-dashboard`; RPC channel = `/dsh-maestro-dashboard` (loopback-only, enforced at the transport layer).
 
 Part of the Maestro Harness suite (installed as a DSH plugin). Aggregates health, plugin catalogue, and usage/cost into one fullscreen surface triggered from `sidebar.footer.action`.
 
@@ -50,7 +50,7 @@ pnpm build    # tsc host + client && node scripts/build-client.mjs  -> lib/
 
 ## Conventions
 
-- **Loopback-only RPC** — `authority: loopback` plus explicit `isLoopback(peer, headers)` check (socket address + `Host: 127.0.0.1:3080` exact match, reject `evil.com` rebinding), 64KB body limit, `origin` + `content-type` checks for `setSetting`.
+- **Loopback-only RPC** — enforced by an explicit `isLoopback(peer, headers)` check in the handler (socket address + `Host: 127.0.0.1:3080` exact match, reject `evil.com` rebinding), 64KB body limit, `origin` + `content-type` checks for `setSetting`.
 - **Host/client split** — keep strict Host (Node) / Client (browser) split (`dsh.client.inject` + `cordis.patch.yml` with `channel: /dsh-maestro-dashboard`). Client injects `['@deepseek-ai/dsh-client-runtime','@deepseek-ai/dsh-client-ui-slots','@deepseek-ai/dsh-client-connection']`.
 - **Snapshot shape** — versioned `{v:1, generatedAt, data: nullable}` for Overview/Plugins/Usage/Reviews; Zod-validated at RPC boundary (`dashboardMethodSchema` discriminatedUnion on `op`).
 - **Data sources are read-only probes** — never duplicate storage; read from source-of-truth (`~/.dsh/maestro/settings.json`, `~/.dsh/sessions/*.jsonl.zstd`, `reviews.json`, `cordis.patch.yml`). Graceful degradation when a plugin is not installed (`null` snapshot → skeleton UI).

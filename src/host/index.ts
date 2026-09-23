@@ -85,7 +85,6 @@ export default {
         return ctx.connection.rpc.handle(
           DASHBOARD_CHANNEL,
           async (endpoint: string, payload: unknown) => handler(payload, {}),
-          { authority: 'loopback' },
         )
       }
       return () => {}
