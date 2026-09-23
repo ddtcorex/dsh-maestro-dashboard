@@ -1,7 +1,8 @@
-import { describe, test, expect, beforeEach } from 'vitest'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { describe, test, expect, beforeEach, afterEach } from 'vitest'
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { zstdCompressSync } from 'node:zlib'
 import { getUsageSnapshot, clearCacheForTest } from '../src/host/usage.ts'
 
 describe('usage handler', () => {
@@ -59,5 +60,57 @@ describe('usage handler', () => {
     const today = new Date(now).toISOString().slice(0, 10)
     const todayEntry = s.data!.daily.find(d => d.date === today)
     expect(todayEntry?.tokens).toBe(3400)
+  })
+})
+
+// Regression (2026-09-23, after DSH 0.1.7-rc.1 bumped the Session format
+// generation to v4): this scan selected logs by literal filename only, so every
+// current session was skipped and the Usage totals silently dropped to the 21
+// legacy generation-0 logs out of 418 session dirs on a real machine.
+describe('usage handler — session log generations', () => {
+  let dir: string
+  const pricing = [{ model: 'deepseek-chat', input: 1, output: 1 }]
+
+  beforeEach(() => {
+    clearCacheForTest()
+    dir = mkdtempSync(join(tmpdir(), 'dash-usage-gen-'))
+  })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+  const makeSessionDir = (id: string): string => {
+    const d = join(dir, '--proj--', id)
+    mkdirSync(d, { recursive: true })
+    return d
+  }
+
+  test('counts a current-generation plaintext session dir', async () => {
+    writeFileSync(join(makeSessionDir('session-a'), 'session.v4.jsonl'), '{"cost":3}\n')
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.totals.cost).toBe(3)
+    expect(s.data!.totals.requests).toBe(1)
+  })
+
+  test('counts a current-generation compressed session dir', async () => {
+    const d = makeSessionDir('session-b')
+    writeFileSync(join(d, 'session.v4.jsonl.zstd'), zstdCompressSync(Buffer.from('{"cost":5}\n')))
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.totals.cost).toBe(5)
+    expect(s.data!.totals.requests).toBe(1)
+  })
+
+  test('counts a session once, from its newest generation', async () => {
+    const d = makeSessionDir('session-c')
+    writeFileSync(join(d, 'session.v3.jsonl'), '{"cost":11}\n') // stale artifact
+    writeFileSync(join(d, 'session.v4.jsonl'), '{"cost":7}\n') // live log
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.totals.cost).toBe(7)
+    expect(s.data!.totals.requests).toBe(1)
+  })
+
+  test('still counts the legacy flat layout', async () => {
+    writeFileSync(join(dir, 'session-legacy.jsonl'), '{"cost":2}\n')
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.totals.cost).toBe(2)
+    expect(s.data!.totals.requests).toBe(1)
   })
 })

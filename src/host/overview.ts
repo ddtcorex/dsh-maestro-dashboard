@@ -4,16 +4,18 @@ import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { zstdDecompressSync } from 'node:zlib'
+import { resolveSessionLogPath } from './shared/session-log.ts'
 
 // Cache govard version 5min to avoid exec per poll
 let govardCache: { has: boolean; ver?: string; at: number } | null = null
 const GOVARD_TTL = 5 * 60 * 1000
-let sessionsCache: { heatmap: Array<{ date: string; count: number }>; sessions: Array<{ id: string; title: string; lastActive: number; cost: number }>; at: number; dirMtime: number } | null = null
+let sessionsCache: { heatmap: Array<{ date: string; count: number }>; sessions: Array<{ id: string; title: string; lastActive: number; cost: number }>; at: number; dirMtime: number; dir: string } | null = null
 const SESSIONS_TTL = 30 * 1000
 
-export async function getOverviewSnapshot(ctx: any): Promise<OverviewSnapshot> {
+export async function getOverviewSnapshot(ctx: any, opts?: { sessionsDir?: string }): Promise<OverviewSnapshot> {
   const now = Date.now()
   const generatedAt = Date.now()
+  const sessionsDir = opts?.sessionsDir ?? join(homedir(), '.dsh', 'sessions')
   let hasNotifier = false
   let notifierCount = 0
   let hasGovard = false
@@ -121,13 +123,12 @@ export async function getOverviewSnapshot(ctx: any): Promise<OverviewSnapshot> {
   let heatmap: Array<{ date: string; count: number }> = []
   let sessions: Array<{ id: string; title: string; lastActive: number; cost: number }> = []
   let useCache = false
-  if (sessionsCache && (now - sessionsCache.at) < SESSIONS_TTL) {
+  if (sessionsCache && sessionsCache.dir === sessionsDir && (now - sessionsCache.at) < SESSIONS_TTL) {
     heatmap = sessionsCache.heatmap
     sessions = sessionsCache.sessions
     useCache = true
   }
   if (!useCache) try {
-    const sessionsDir = join(homedir(), '.dsh', 'sessions')
     const byDate: Record<string, number> = {}
     const nowMs = Date.now()
     for (let i = 0; i < 52 * 7; i++) {
@@ -191,20 +192,13 @@ export async function getOverviewSnapshot(ctx: any): Promise<OverviewSnapshot> {
         for (const sub of subs) {
           if (sub.isDirectory()) {
             const subPath = join(groupPath, sub.name)
-            const fp = join(subPath, 'session.jsonl.zstd')
-            const altFp = join(subPath, 'session.jsonl')
-            let actualFp: string | null = null
-            if (existsSync(fp)) actualFp = fp
-            else if (existsSync(altFp)) actualFp = altFp
-            else {
-              try {
-                const files = readdirSync(subPath)
-                const found = files.find(f => f.endsWith('.jsonl.zstd') || f.endsWith('.jsonl'))
-                if (found) actualFp = join(subPath, found)
-              } catch {}
-            }
-            if (!actualFp) continue
-            const d = getSessionDate(actualFp)
+            // A session directory owns ONE log — the newest format generation in
+            // it, which is the file the harness reads. Preferring a literal
+            // generation-0 name (or an arbitrary directory entry) dated a session
+            // from a stale artifact once the harness bumped the generation.
+            const logPath = resolveSessionLogPath(subPath)
+            if (!logPath) continue
+            const d = getSessionDate(logPath)
             if (d && byDate[d] !== undefined) byDate[d] += 1
             else if (d) {
               // date outside 364 window — still count in nearest bucket for visibility
@@ -231,8 +225,8 @@ export async function getOverviewSnapshot(ctx: any): Promise<OverviewSnapshot> {
 
   if (!useCache) {
     let dirMtime = 0
-    try { dirMtime = statSync(join(homedir(), '.dsh', 'sessions')).mtimeMs } catch {}
-    sessionsCache = { heatmap, sessions, at: generatedAt, dirMtime }
+    try { dirMtime = statSync(sessionsDir).mtimeMs } catch {}
+    sessionsCache = { heatmap, sessions, at: generatedAt, dirMtime, dir: sessionsDir }
   }
 
   const snapshot: OverviewSnapshot = {

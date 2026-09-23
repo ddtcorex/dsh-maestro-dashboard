@@ -1,8 +1,9 @@
 import type { UsageSnapshot } from './shared/types.ts'
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { homedir } from 'node:os'
 import { zstdDecompressSync } from 'node:zlib'
+import { resolveSessionLogPath } from './shared/session-log.ts'
 
 const cache = new Map<string, { mtime: number; stats: { cost: number; tokens: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model?: string } }>()
 let lastPricingFetch = 0
@@ -231,34 +232,23 @@ export async function getUsageSnapshot(
               entries = [{ name: group.name, path: groupPath, isDir: false }]
             } else if (st.isDirectory()) {
               const subs = readdirSync(groupPath, { withFileTypes: true })
-              // if dir contains session.jsonl.zstd directly or subdirs per session
-              const hasSessionFile = subs.some(s => s.name === 'session.jsonl.zstd' || s.name === 'session.jsonl')
-              if (hasSessionFile) {
-                entries = subs.filter(s => s.isFile() && (s.name === 'session.jsonl.zstd' || s.name === 'session.jsonl'))
-                  .map(s => ({ name: `${group.name}/${s.name}`, path: join(groupPath, s.name), isDir: false }))
-                if (entries.length === 0) {
-                  // actually group itself is a session dir containing the file
-                  const p1 = join(groupPath, 'session.jsonl.zstd')
-                  const p2 = join(groupPath, 'session.jsonl')
-                  if (existsSync(p1)) entries = [{ name: `${group.name}/session.jsonl.zstd`, path: p1, isDir: false }]
-                  else if (existsSync(p2)) entries = [{ name: `${group.name}/session.jsonl`, path: p2, isDir: false }]
-                  else entries = []
-                }
+              // A session directory owns ONE log: the newest format generation in
+              // it is the file the harness reads, so a stale generation beside a
+              // live one is never counted (and never counted twice). A group dir
+              // that is itself a session dir (or a legacy flat layout inside the
+              // group) resolves the same way.
+              const groupLog = resolveSessionLogPath(groupPath)
+              if (groupLog) {
+                entries = [{ name: `${group.name}/${basename(groupLog)}`, path: groupLog, isDir: false }]
               } else {
-                // each sub is a session dir
                 entries = []
                 for (const sub of subs) {
                   const subPath = join(groupPath, sub.name)
                   try {
                     const subSt = statSync(subPath)
                     if (subSt.isDirectory()) {
-                      const p1 = join(subPath, 'session.jsonl.zstd')
-                      const p2 = join(subPath, 'session.jsonl')
-                      if (existsSync(p1)) entries.push({ name: `${group.name}/${sub.name}/session.jsonl.zstd`, path: p1, isDir: false })
-                      else if (existsSync(p2)) entries.push({ name: `${group.name}/${sub.name}/session.jsonl`, path: p2, isDir: false })
-                      else {
-                        // empty session dir
-                      }
+                      const log = resolveSessionLogPath(subPath)
+                      if (log) entries.push({ name: `${group.name}/${sub.name}/${basename(log)}`, path: log, isDir: false })
                     } else if (subSt.isFile() && (sub.name.endsWith('.jsonl.zstd') || sub.name.endsWith('.jsonl'))) {
                       entries.push({ name: `${group.name}/${sub.name}`, path: subPath, isDir: false })
                     }
