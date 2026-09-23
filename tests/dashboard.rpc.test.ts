@@ -26,10 +26,10 @@ describe('dashboard RPC hardening', () => {
     expect(typeof r.value.generatedAt).toBe('number')
   })
   // This case deliberately runs getUsage against the operator's REAL sessions
-  // tree (no sessionsDir override), and the scan decodes one `zstd` artifact per
-  // session: measured 6.2s cold for 418 session dirs, 5ms once the per-file mtime
-  // cache is warm. The default 5s budget fits CI (empty tree) but not a full
-  // local tree, so give it room instead of asserting on a smaller input.
+  // tree (no sessionsDir override) and decodes one `zstd` artifact per session,
+  // so its budget reflects a full tree, not an empty CI one: measured 2.9s cold
+  // for 418 session dirs (~0.5s spawn+decode, ~1.5s piping 630 MB, ~1.4s parsing
+  // the billing lines) and 5ms once the per-file mtime cache is warm.
   test('getPlugins and getUsage work', async () => {
     const handler = createHandler()
     const p = await handler({ op: 'getPlugins' }, loopbackCtx as any) as any
