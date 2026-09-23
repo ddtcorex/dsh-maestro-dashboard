@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
@@ -124,12 +123,6 @@ describe('usage handler — session log generations', () => {
 describe('usage handler — multi-frame zstd decode', () => {
   let dir: string
   const pricing = [{ model: 'deepseek-chat', input: 1, output: 1 }]
-  let zstdAvailable = true
-  try {
-    execFileSync('zstd', ['--version'], { stdio: 'ignore' })
-  } catch {
-    zstdAvailable = false
-  }
 
   beforeEach(() => {
     clearCacheForTest()
@@ -146,7 +139,7 @@ describe('usage handler — multi-frame zstd decode', () => {
     return p
   }
 
-  test.skipIf(!zstdAvailable)('reads usage from frames after the first one', async () => {
+  test('reads usage from frames after the first one', async () => {
     writeMultiFrame('session-frames', [
       JSON.stringify({ type: 'session', version: 4, id: 'session-frames', createdAt: Date.now() }),
       JSON.stringify({ type: 'step/end', data: { usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 } } }),
@@ -157,7 +150,40 @@ describe('usage handler — multi-frame zstd decode', () => {
     expect(s.data!.totals.cost).toBe(9)
   })
 
-  test.skipIf(!zstdAvailable)('counts a corrupt artifact once, with a warning, instead of stubbing it', async () => {
+  test('reports a missing zstd binary once, not once per file', async () => {
+    // The decoder is a `zstd` spawn, so a machine without the binary must say so
+    // plainly instead of labelling every session "corrupt".
+    for (const id of ['session-nocli-a', 'session-nocli-b']) {
+      writeMultiFrame(id, [
+        JSON.stringify({ type: 'session', version: 4, id, createdAt: Date.now() }),
+        JSON.stringify({ type: 'step/end', data: { usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 } } }),
+      ])
+    }
+    const savedPath = process.env.PATH
+    process.env.PATH = '/nonexistent-bin'
+    try {
+      const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+      const warns = s.data!.warnings ?? []
+      expect(warns.filter((w) => w.includes('zstd binary not found')).length).toBe(1)
+      expect(s.data!.totals.tokens).toBe(0)
+    } finally {
+      process.env.PATH = savedPath
+    }
+  })
+
+  test('reads every log in a large tree', async () => {
+    for (let i = 0; i < 24; i++) {
+      writeMultiFrame(`session-many-${i}`, [
+        JSON.stringify({ type: 'session', version: 4, id: `session-many-${i}`, createdAt: Date.now() }),
+        JSON.stringify({ type: 'step/end', data: { usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 } } }),
+      ])
+    }
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.totals.tokens).toBe(24 * 1500)
+    expect(s.data!.totals.requests).toBe(24)
+  })
+
+  test('counts a corrupt artifact once, with a warning, instead of stubbing it', async () => {
     const d = join(dir, '--proj--', 'session-bad')
     mkdirSync(d, { recursive: true })
     writeFileSync(join(d, 'session.v4.jsonl.zstd'), Buffer.concat([zstdCompressSync(Buffer.from('{"cost":4}\n')), Buffer.from('notzstdframe')]))
