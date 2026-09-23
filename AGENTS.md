@@ -13,12 +13,12 @@ Part of the Maestro Harness suite (installed as a DSH plugin). Aggregates health
 ## Layout
 
 - `src/host/index.ts` — host `apply()`: registers the loopback RPC channel `/dsh-maestro-dashboard` and dispatches `getOverview`/`getPlugins`/`getUsage`/`getReviews`/`getSettingsDomains`/`setSetting`.
-- `src/host/overview.ts` — `getOverviewSnapshot(ctx)`: probes `maestroNotifier`/`maestroConfig`/`govardTool`, reads `~/.dsh/dsh-maestro-review/reviews.json`, scans `~/.dsh/sessions/*.jsonl.zstd` for heatmap + recent sessions.
+- `src/host/overview.ts` — `getOverviewSnapshot(ctx, opts?)`: probes `maestroNotifier`/`maestroConfig`/`govardTool`, reads `~/.dsh/dsh-maestro-review/reviews.json`, scans the sessions tree (`opts.sessionsDir` override, default `~/.dsh/sessions`) for heatmap + recent sessions. The session cache is keyed by directory, so an override never serves the production cache.
 - `src/host/plugins.ts` — `getPluginsSnapshot()`: parses `cordis.patch.yml`/`package.json`, detects installed `@ddtcorex/dsh-maestro-*` packages, fetches npm `dist-tags.latest` with cache, builds health.
 - `src/host/usage.ts` — `getUsageSnapshot(range)`: incremental scan of `~/.dsh/sessions` (mtime check + zstd decompress), pricing fetch with TTL, totals/daily/budget.
 - `src/host/reviews.ts` — `getReviewsSnapshot(limit)`: reads `~/.dsh/dsh-maestro-review/reviews.json` (legacy `~/dsh-maestro-review` fallback), sorted by `startedAt`.
 - `src/host/settings-bridge.ts` — `getSettingsDomains`/`setSetting` via `@ddtcorex/dsh-maestro-config-lib` (`~/.dsh/maestro/settings.json`).
-- `src/host/shared/` — `channels.ts` (`DASHBOARD_CHANNEL = '/dsh-maestro-dashboard'`) and `types.ts` (Zod schemas for snapshots + `dashboardMethodSchema` discriminated union).
+- `src/host/shared/` — `channels.ts` (`DASHBOARD_CHANNEL = '/dsh-maestro-dashboard'`), `types.ts` (Zod schemas for snapshots + `dashboardMethodSchema` discriminated union) and `session-log.ts` — the single owner of "which file is a session's log": `resolveSessionLogPath(dir)` picks the newest Session format **generation** in a directory (`session.jsonl[.zstd]` = generation 0, `session.v<N>.jsonl[.zstd]` = later ones, unbounded). Never select a session log by literal filename: a hardcoded list goes blind at every harness generation bump, silently, and it did on 2026-09-23 when DSH 0.1.7-rc.1 moved v3 -> v4 (the usage scan counted 21 of 418 session dirs). Mirrors the sibling `dsh-maestro-supervisor` helper (`src/host/session-log-file.ts`); keep the contract identical.
 - `src/client/index.tsx` — browser half (sidebar `sidebar.footer.action` trigger + fullscreen overlay, `DashboardApp` with polling).
 - `src/client/trigger.tsx` — `MaestroTrigger`: logo + status dot, collapsed-aware.
 - `src/client/overlay.tsx` — fullscreen portal with primary tabs Overview/Plugins/Usage.
