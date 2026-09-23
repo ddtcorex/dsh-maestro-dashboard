@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
@@ -112,5 +113,55 @@ describe('usage handler — session log generations', () => {
     const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
     expect(s.data!.totals.cost).toBe(2)
     expect(s.data!.totals.requests).toBe(1)
+  })
+})
+
+// Regression (2026-09-23): the harness writes a session log as ONE ZSTD FRAME
+// PER EVENT. Node's zstd decoder — both `zstdDecompressSync` and the streaming
+// API, measured — stops after the FIRST frame and returns just the header line
+// without throwing, so every session parsed as an empty log and the Usage
+// totals collapsed to the parser's 0.01/100 stub.
+describe('usage handler — multi-frame zstd decode', () => {
+  let dir: string
+  const pricing = [{ model: 'deepseek-chat', input: 1, output: 1 }]
+  let zstdAvailable = true
+  try {
+    execFileSync('zstd', ['--version'], { stdio: 'ignore' })
+  } catch {
+    zstdAvailable = false
+  }
+
+  beforeEach(() => {
+    clearCacheForTest()
+    dir = mkdtempSync(join(tmpdir(), 'dash-usage-frames-'))
+  })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+  /** One frame per event, exactly like the harness writes it. */
+  const writeMultiFrame = (id: string, events: string[]): string => {
+    const d = join(dir, '--proj--', id)
+    mkdirSync(d, { recursive: true })
+    const p = join(d, 'session.v4.jsonl.zstd')
+    writeFileSync(p, Buffer.concat(events.map((e) => zstdCompressSync(Buffer.from(e + '\n')))))
+    return p
+  }
+
+  test.skipIf(!zstdAvailable)('reads usage from frames after the first one', async () => {
+    writeMultiFrame('session-frames', [
+      JSON.stringify({ type: 'session', version: 4, id: 'session-frames', createdAt: Date.now() }),
+      JSON.stringify({ type: 'step/end', data: { usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 } } }),
+      JSON.stringify({ cost: 9 }),
+    ])
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.totals.tokens).toBe(1500)
+    expect(s.data!.totals.cost).toBe(9)
+  })
+
+  test.skipIf(!zstdAvailable)('counts a corrupt artifact once, with a warning, instead of stubbing it', async () => {
+    const d = join(dir, '--proj--', 'session-bad')
+    mkdirSync(d, { recursive: true })
+    writeFileSync(join(d, 'session.v4.jsonl.zstd'), Buffer.concat([zstdCompressSync(Buffer.from('{"cost":4}\n')), Buffer.from('notzstdframe')]))
+    const s = await getUsageSnapshot('7d', { sessionsDir: dir, pricing })
+    expect(s.data!.warnings?.join('')).toContain('skipped')
   })
 })

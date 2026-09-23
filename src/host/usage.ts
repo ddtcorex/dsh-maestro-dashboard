@@ -2,7 +2,7 @@ import type { UsageSnapshot } from './shared/types.ts'
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { homedir } from 'node:os'
-import { zstdDecompressSync } from 'node:zlib'
+import { execFileSync } from 'node:child_process'
 import { resolveSessionLogPath } from './shared/session-log.ts'
 
 const cache = new Map<string, { mtime: number; stats: { cost: number; tokens: number; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number; model?: string } }>()
@@ -17,13 +17,32 @@ interface GetUsageOpts {
   pricing?: Array<{ model: string; input: number; output: number }>
 }
 
-function decompressIfNeeded(buf: Buffer, isZstd: boolean): string {
-  if (!isZstd) return buf.toString('utf8')
+/** Cap for one decoded session log — real multi-frame logs decompress to 8-23 MB. */
+const ZSTD_MAX_BUFFER = 64 * 1024 * 1024
+
+/**
+ * Read one session log as text.
+ *
+ * `.zstd` artifacts are decoded with the `zstd` CLI, NOT Node's zstd decoder:
+ * the harness writes ONE FRAME PER EVENT, and Node's decoder — `zstdDecompressSync`
+ * and the streaming API alike, measured 2026-09-23 — stops after the FIRST frame
+ * and returns the header line silently, without throwing. Parsing that made every
+ * session look empty and collapsed the Usage totals to the parser's stub.
+ * @param file - one session log path.
+ * @returns the decoded text, or `undefined` when the artifact cannot be decoded.
+ */
+function readSessionText(file: string): string | undefined {
+  if (!file.endsWith('.zstd')) {
+    try {
+      return readFileSync(file, 'utf8')
+    } catch {
+      return undefined
+    }
+  }
   try {
-    const out = zstdDecompressSync(buf)
-    return out.toString('utf8')
+    return execFileSync('zstd', ['-d', '-c', file], { maxBuffer: ZSTD_MAX_BUFFER, timeout: 30_000 }).toString('utf8')
   } catch {
-    throw new Error('zstd decompress failed')
+    return undefined
   }
 }
 
@@ -279,16 +298,8 @@ export async function getUsageSnapshot(
                 continue
               }
               // read file
-              let buf: Buffer
-              try { buf = readFileSync(ent.path) } catch (e: any) { warnings.push(`skipped ${cacheKey}: ${String(e?.message ?? e)}`); continue }
-              // quick corrupt check for test 'not-zstd'
-              if (buf.slice(0, 100).toString('utf8').includes('not-zstd')) {
-                warnings.push(`skipped corrupt session ${cacheKey}`)
-                continue
-              }
-              const isZstd = ent.path.endsWith('.zstd')
-              let text: string
-              try { text = decompressIfNeeded(buf, isZstd) } catch {
+              const text = readSessionText(ent.path)
+              if (text === undefined) {
                 warnings.push(`skipped corrupt session ${cacheKey}`)
                 continue
               }
