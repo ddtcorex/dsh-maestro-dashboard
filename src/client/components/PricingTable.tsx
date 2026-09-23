@@ -26,8 +26,8 @@ export function PricingTable(props: { pricing: Array<{ model: string; input: num
             {props.pricing.map((p) => (
               <tr key={p.model} style={{ borderBottom: '1px solid var(--dsw-alias-border-l1)' }}>
                 <td style={{ padding: '10px 14px', font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-primary)', fontFamily: 'var(--ds-font-family-code)', wordBreak: 'break-all' }}>{p.model}</td>
-                <td style={{ padding: '10px 14px', font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)', textAlign: 'right', whiteSpace: 'nowrap' as any }}>¥{Number(p.input).toFixed(4)}</td>
-                <td style={{ padding: '10px 14px', font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)', textAlign: 'right', whiteSpace: 'nowrap' as any }}>¥{Number(p.output).toFixed(4)}</td>
+                <td style={{ padding: '10px 14px', font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)', textAlign: 'right', whiteSpace: 'nowrap' as any }}>${Number(p.input).toFixed(4)}</td>
+                <td style={{ padding: '10px 14px', font: 'var(--dsw-font-xs-13)', color: 'var(--dsw-alias-label-secondary)', textAlign: 'right', whiteSpace: 'nowrap' as any }}>${Number(p.output).toFixed(4)}</td>
               </tr>
             ))}
           </tbody>

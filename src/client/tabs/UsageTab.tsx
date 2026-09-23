@@ -52,7 +52,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d' | undefin
         `}</style>
         <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, padding: '14px 16px', background: 'var(--dsw-alias-bg-layer-1)' }}>
           <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', letterSpacing: '.04em', textTransform: 'uppercase' as any }}>Cost</div>
-          <div style={{ font: 'var(--dsw-font-markdown-h3)', color: 'var(--dsw-alias-label-primary)', marginTop: 6 }}>¥{Number(totals.cost ?? 0).toFixed(2)}</div>
+          <div style={{ font: 'var(--dsw-font-markdown-h3)', color: 'var(--dsw-alias-label-primary)', marginTop: 6 }}>${Number(totals.cost ?? 0).toFixed(2)}</div>
           <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 4 }}>{Number(totals.requests ?? 0)} requests · {range}</div>
         </div>
         <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, padding: '14px 16px', background: 'var(--dsw-alias-bg-layer-1)' }}>
@@ -65,7 +65,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d' | undefin
         </div>
         <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, padding: '14px 16px', background: 'var(--dsw-alias-bg-layer-1)' }}>
           <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', letterSpacing: '.04em', textTransform: 'uppercase' as any }}>Avg / request</div>
-          <div style={{ font: 'var(--dsw-font-markdown-h3)', color: 'var(--dsw-alias-label-primary)', marginTop: 6 }}>¥{((Number(totals.cost ?? 0) / Math.max(1, Number(totals.requests ?? 0)))).toFixed(4)}</div>
+          <div style={{ font: 'var(--dsw-font-markdown-h3)', color: 'var(--dsw-alias-label-primary)', marginTop: 6 }}>${((Number(totals.cost ?? 0) / Math.max(1, Number(totals.requests ?? 0)))).toFixed(4)}</div>
           <div style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)', marginTop: 4 }}>{daily.length} days · {Number(totals.requests ?? 0)} req</div>
         </div>
       </div>
@@ -91,7 +91,7 @@ export function UsageTab(props: { snapshot?: any; range?: '7d' | '30d' | undefin
         <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(110px,1fr))', font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>
           {daily.slice(-7).map((d: any) => (
             <span key={d.date} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, border: '1px solid var(--dsw-alias-border-l1)', padding: '6px 8px', borderRadius: 8, background: 'var(--dsw-alias-bg-base)' }}>
-              <span>{d.date.slice(5)}</span><span style={{ color: 'var(--dsw-alias-label-primary)', fontWeight: 600 }}>¥{Number(d.cost).toFixed(2)}</span>
+              <span>{d.date.slice(5)}</span><span style={{ color: 'var(--dsw-alias-label-primary)', fontWeight: 600 }}>${Number(d.cost).toFixed(2)}</span>
             </span>
           ))}
         </div>

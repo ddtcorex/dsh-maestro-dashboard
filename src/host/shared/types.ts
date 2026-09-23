@@ -44,7 +44,13 @@ export const usageSnapshotSchema = z.object({
       cacheReadTokens: z.number().optional(),
       cacheWriteTokens: z.number().optional(),
     })),
-    pricing: z.array(z.object({ model: z.string(), input: z.number(), output: z.number() })),
+    pricing: z.array(z.object({
+      model: z.string(),
+      input: z.number(),
+      output: z.number(),
+      cacheRead: z.number().optional(),
+      cacheWrite: z.number().optional(),
+    })),
     warnings: z.array(z.string()).optional(),
     budget: z.object({ limit: z.number(), used: z.number() }).optional()
   }))

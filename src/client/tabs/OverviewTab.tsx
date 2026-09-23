@@ -67,14 +67,14 @@ export function OverviewTab(props: {
         <div style={{ border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 16, background: 'var(--dsw-alias-bg-layer-1)', padding: 16, display: 'grid', gap: 12, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ font: 'var(--dsw-font-xs-strong-13)', color: 'var(--dsw-alias-label-primary)' }}>Cost trend</div>
-            <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>¥{Number(totals.cost ?? 0).toFixed(2)} · {daily.length}d</span>
+            <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>${Number(totals.cost ?? 0).toFixed(2)} · {daily.length}d</span>
           </div>
           <Sparkline data={daily.map((d: any) => Number(d.cost ?? 0))} height={64} />
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
               { k: 'Requests', v: String(totals.requests ?? 0) },
               { k: 'Tokens', v: Number(totals.tokens ?? 0).toLocaleString() },
-              { k: 'Avg', v: `¥${((Number(totals.cost ?? 0) / Math.max(1, Number(totals.requests ?? 0)))).toFixed(4)}` },
+              { k: 'Avg', v: `$${((Number(totals.cost ?? 0) / Math.max(1, Number(totals.requests ?? 0)))).toFixed(4)}` },
             ].map((s) => (
               <span key={s.k} style={{ flex: '1 1 auto', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: 10, padding: '8px 10px', background: 'var(--dsw-alias-bg-base)', display: 'grid', gap: 2, minWidth: 90 }}>
                 <span style={{ font: 'var(--dsw-font-xxs-12)', color: 'var(--dsw-alias-label-tertiary)' }}>{s.k}</span>
